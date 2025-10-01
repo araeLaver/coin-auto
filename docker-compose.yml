@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  auto-coin-trading:
+    build: .
+    container_name: auto-coin-trading
+    restart: unless-stopped
+    environment:
+      # Database (Koyeb PostgreSQL)
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_NAME=${DB_NAME}
+      - DB_SCHEMA=${DB_SCHEMA}
+
+      # Bithumb API
+      - BITHUMB_API_KEY=${BITHUMB_API_KEY}
+      - BITHUMB_SECRET_KEY=${BITHUMB_SECRET_KEY}
+
+      # Telegram
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+
+      # Trading Config
+      - TRADE_MODE=${TRADE_MODE:-paper}
+      - INITIAL_CAPITAL=${INITIAL_CAPITAL:-1000000}
+      - MAX_POSITION_SIZE=${MAX_POSITION_SIZE:-0.1}
+      - STOP_LOSS_PERCENT=${STOP_LOSS_PERCENT:-0.02}
+      - TAKE_PROFIT_PERCENT=${TAKE_PROFIT_PERCENT:-0.05}
+      - MAX_DAILY_LOSS=${MAX_DAILY_LOSS:-0.05}
+      - MAX_OPEN_POSITIONS=${MAX_OPEN_POSITIONS:-3}
+
+    volumes:
+      - ./logs:/app/logs
+      - ./models:/app/models
+
+    # 헬스체크
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

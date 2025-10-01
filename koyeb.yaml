@@ -1,0 +1,79 @@
+# Koyeb 배포 설정
+app:
+  name: auto-coin-trading
+
+services:
+  - name: trading-bot
+    type: worker
+
+    # Docker 이미지 빌드
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # 인스턴스 설정
+    instance:
+      type: eco  # eco, eco2, standard 중 선택
+
+    # 환경 변수 (Koyeb 대시보드에서 설정)
+    env:
+      - name: DB_USER
+        type: secret
+        value: db-user
+      - name: DB_PASSWORD
+        type: secret
+        value: db-password
+      - name: DB_HOST
+        type: secret
+        value: db-host
+      - name: DB_NAME
+        type: secret
+        value: db-name
+      - name: DB_SCHEMA
+        value: auto_coin_trading
+
+      - name: BITHUMB_API_KEY
+        type: secret
+        value: bithumb-api-key
+      - name: BITHUMB_SECRET_KEY
+        type: secret
+        value: bithumb-secret-key
+
+      - name: TELEGRAM_BOT_TOKEN
+        type: secret
+        value: telegram-bot-token
+      - name: TELEGRAM_CHAT_ID
+        type: secret
+        value: telegram-chat-id
+
+      - name: TRADE_MODE
+        value: paper
+      - name: INITIAL_CAPITAL
+        value: "1000000"
+      - name: MAX_POSITION_SIZE
+        value: "0.1"
+      - name: STOP_LOSS_PERCENT
+        value: "0.02"
+      - name: TAKE_PROFIT_PERCENT
+        value: "0.05"
+      - name: MAX_DAILY_LOSS
+        value: "0.05"
+      - name: MAX_OPEN_POSITIONS
+        value: "3"
+
+    # 헬스체크
+    health_checks:
+      - type: tcp
+        port: 8080
+        interval: 60
+        timeout: 10
+        grace_period: 120
+
+    # 리전 설정 (Singapore)
+    regions:
+      - sin
+
+    # 자동 스케일링 비활성화 (Worker는 항상 1개만)
+    scaling:
+      min: 1
+      max: 1

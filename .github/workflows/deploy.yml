@@ -1,0 +1,60 @@
+name: Deploy to Koyeb
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Docker Hub (optional)
+        if: github.event_name == 'push'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and test
+        run: |
+          docker build -t auto-coin-trading:test .
+          echo "Docker build successful"
+
+      - name: Deploy to Koyeb
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
+        run: |
+          # Install Koyeb CLI
+          curl -fsSL https://cli.koyeb.com/install.sh | sh
+
+          # Deploy to Koyeb
+          koyeb service redeploy auto-coin-trading/trading-bot \
+            --token $KOYEB_TOKEN
+
+      - name: Notify Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            MESSAGE="✅ 배포 성공: ${{ github.sha }}"
+          else
+            MESSAGE="❌ 배포 실패: ${{ github.sha }}"
+          fi
+
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d text="${MESSAGE}"
