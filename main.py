@@ -4,13 +4,13 @@ Auto Coin Trading - 메인 실행 파일
 
 import sys
 import argparse
-from core.trading_engine import TradingEngine
+from core.trading_engine_v2 import TradingEngineV2
 from database.init_db import main as init_database
 from utils.telegram_notifier import TelegramNotifier
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Auto Coin Trading System')
+    parser = argparse.ArgumentParser(description='Auto Coin Trading System V2')
     parser.add_argument('--mode', choices=['init', 'run', 'collect'], default='run',
                        help='실행 모드 (init: DB 초기화, run: 트레이딩 실행, collect: 데이터 수집)')
     parser.add_argument('--interval', type=int, default=60,
@@ -23,21 +23,24 @@ def main():
         init_database()
 
     elif args.mode == 'run':
-        print("트레이딩 시스템 시작...")
-
-        # 텔레그램 알림
-        notifier = TelegramNotifier()
-        notifier.notify_system_start()
+        print("트레이딩 시스템 V2 시작...")
 
         try:
-            engine = TradingEngine()
+            engine = TradingEngineV2()
             engine.run(interval=args.interval)
         except KeyboardInterrupt:
             print("\n시스템 종료 중...")
-            notifier.notify_system_stop()
         except Exception as e:
             print(f"치명적 에러: {str(e)}")
-            notifier.notify_error(f"치명적 에러: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+            # 에러 알림
+            try:
+                notifier = TelegramNotifier()
+                notifier.notify_error(f"치명적 에러: {str(e)}")
+            except:
+                pass
 
     elif args.mode == 'collect':
         print("데이터 수집 모드...")

@@ -104,7 +104,7 @@ class RiskManager:
 
         return True
 
-    def should_close_position(self, position: Position, current_price: float) -> tuple[bool, str]:
+    def should_close_position(self, position: Position, current_price: float) -> tuple:
         """
         포지션 청산 여부 결정
         Args:
@@ -189,7 +189,7 @@ class RiskManager:
 
         self.db.commit()
 
-    def validate_signal_risk(self, signal: Dict, account_balance: float) -> tuple[bool, str]:
+    def validate_signal_risk(self, signal: Dict, account_balance: float) -> tuple:
         """
         시그널 리스크 검증
         Args:
