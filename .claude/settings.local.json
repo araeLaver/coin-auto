@@ -12,7 +12,10 @@
       "Bash(python:*)",
       "Bash(powershell:*)",
       "Bash(git checkout:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(git push:*)",
+      "WebSearch",
+      "WebFetch(domain:apidocs.bithumb.com)"
     ],
     "deny": [],
     "ask": []

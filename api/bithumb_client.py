@@ -25,6 +25,8 @@ class BithumbAPI:
 
     def _generate_signature(self, endpoint: str, params: Dict = None) -> Dict[str, str]:
         """API 서명 생성 (빗썸 공식 방식)"""
+        import base64
+
         nonce = str(int(time.time() * 1000))
 
         if params:
@@ -35,12 +37,15 @@ class BithumbAPI:
         # 빗썸 서명 생성: endpoint + null + params + null + nonce
         message = endpoint + chr(0) + query_string + chr(0) + nonce
 
-        # Secret Key를 그대로 사용 (Base64 디코딩 하지 않음)
-        signature = hmac.new(
+        # HMAC-SHA512 해시 생성 후 hexdigest
+        signature_hash = hmac.new(
             self.secret_key.encode('utf-8'),
             message.encode('utf-8'),
             hashlib.sha512
         ).hexdigest()
+
+        # hexdigest를 Base64로 인코딩
+        signature = base64.b64encode(signature_hash.encode('utf-8')).decode('utf-8')
 
         return {
             'Api-Key': self.api_key,
