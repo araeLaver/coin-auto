@@ -8,7 +8,6 @@ alembic==1.13.0
 requests==2.31.0
 websocket-client==1.6.4
 aiohttp==3.9.1
-pybithumb==1.0.29
 
 # Data analysis
 pandas==2.1.4
