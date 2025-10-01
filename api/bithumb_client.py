@@ -24,7 +24,7 @@ class BithumbAPI:
         self.session = requests.Session()
 
     def _generate_signature(self, endpoint: str, params: Dict = None) -> Dict[str, str]:
-        """API 서명 생성"""
+        """API 서명 생성 (빗썸 공식 방식)"""
         nonce = str(int(time.time() * 1000))
 
         if params:
@@ -32,7 +32,10 @@ class BithumbAPI:
         else:
             query_string = ""
 
+        # 빗썸 서명 생성: endpoint + null + params + null + nonce
         message = endpoint + chr(0) + query_string + chr(0) + nonce
+
+        # Secret Key를 그대로 사용 (Base64 디코딩 하지 않음)
         signature = hmac.new(
             self.secret_key.encode('utf-8'),
             message.encode('utf-8'),
@@ -48,25 +51,39 @@ class BithumbAPI:
     def _request(self, method: str, endpoint: str, params: Dict = None, signed: bool = False) -> Dict:
         """HTTP 요청 처리"""
         url = f"{self.BASE_URL}{endpoint}"
-        headers = {'Content-Type': 'application/json'}
 
         if signed:
+            # Private API: Content-Type을 x-www-form-urlencoded로 설정
+            headers = {'Content-Type': 'application/x-www-form-urlencoded'}
             headers.update(self._generate_signature(endpoint, params))
 
-        try:
-            if method == 'GET':
-                response = self.session.get(url, params=params, headers=headers, timeout=10)
-            elif method == 'POST':
-                response = self.session.post(url, json=params, headers=headers, timeout=10)
-            else:
-                raise ValueError(f"Unsupported method: {method}")
+            # POST 요청 시 데이터를 form-data로 전송
+            try:
+                from urllib.parse import urlencode
+                body = urlencode(params) if params else ""
+                response = self.session.post(url, data=body, headers=headers, timeout=10)
+                response.raise_for_status()
+                return response.json()
+            except requests.exceptions.RequestException as e:
+                print(f"API 요청 실패: {e}")
+                return {'status': '5000', 'message': str(e)}
+        else:
+            # Public API
+            headers = {'Content-Type': 'application/json'}
+            try:
+                if method == 'GET':
+                    response = self.session.get(url, params=params, headers=headers, timeout=10)
+                elif method == 'POST':
+                    response = self.session.post(url, json=params, headers=headers, timeout=10)
+                else:
+                    raise ValueError(f"Unsupported method: {method}")
 
-            response.raise_for_status()
-            return response.json()
+                response.raise_for_status()
+                return response.json()
 
-        except requests.exceptions.RequestException as e:
-            print(f"API 요청 실패: {e}")
-            return {'status': '5000', 'message': str(e)}
+            except requests.exceptions.RequestException as e:
+                print(f"API 요청 실패: {e}")
+                return {'status': '5000', 'message': str(e)}
 
     # ===========================
     # Public API (인증 불필요)

@@ -3,9 +3,18 @@
 전용 스키마 생성 및 기본 전략 데이터 삽입
 """
 
-from models import init_db, SessionLocal, Strategy
-from datetime import datetime
 import sys
+import os
+
+# Windows 콘솔 UTF-8 설정
+if sys.platform == 'win32':
+    os.system('chcp 65001 > nul')
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
+from database.models import init_db, SessionLocal, Strategy
+from datetime import datetime
 
 def create_default_strategies():
     """기본 전략 데이터 생성"""

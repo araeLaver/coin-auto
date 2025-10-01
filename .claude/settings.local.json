@@ -7,7 +7,12 @@
       "Bash(dir:*)",
       "Bash(git commit:*)",
       "Bash(git remote add:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(python test:*)",
+      "Bash(python:*)",
+      "Bash(powershell:*)",
+      "Bash(git checkout:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
