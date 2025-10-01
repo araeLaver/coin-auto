@@ -7,6 +7,7 @@ import argparse
 from core.trading_engine_v2 import TradingEngineV2
 from database.init_db import main as init_database
 from utils.telegram_notifier import TelegramNotifier
+from health_server import start_health_server
 
 
 def main():
@@ -24,6 +25,9 @@ def main():
 
     elif args.mode == 'run':
         print("트레이딩 시스템 V2 시작...")
+
+        # Health check 서버 시작 (Koyeb용)
+        start_health_server(port=8000)
 
         try:
             engine = TradingEngineV2()
