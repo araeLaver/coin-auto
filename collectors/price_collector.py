@@ -90,18 +90,34 @@ class PriceCollector:
     def save_ohlcv(self, candle_data: Dict):
         """OHLCV 데이터 저장"""
         try:
-            ohlcv = OHLCVData(
-                symbol=candle_data['symbol'],
-                timeframe=candle_data['timeframe'],
-                timestamp=candle_data['timestamp'],
-                open=Decimal(str(candle_data['open'])),
-                high=Decimal(str(candle_data['high'])),
-                low=Decimal(str(candle_data['low'])),
-                close=Decimal(str(candle_data['close'])),
-                volume=Decimal(str(candle_data['volume']))
-            )
+            # 기존 데이터 확인
+            existing = self.db.query(OHLCVData).filter(
+                OHLCVData.symbol == candle_data['symbol'],
+                OHLCVData.timeframe == candle_data['timeframe'],
+                OHLCVData.timestamp == candle_data['timestamp']
+            ).first()
 
-            self.db.merge(ohlcv)  # INSERT or UPDATE
+            if existing:
+                # 업데이트
+                existing.open = Decimal(str(candle_data['open']))
+                existing.high = Decimal(str(candle_data['high']))
+                existing.low = Decimal(str(candle_data['low']))
+                existing.close = Decimal(str(candle_data['close']))
+                existing.volume = Decimal(str(candle_data['volume']))
+            else:
+                # 신규 삽입
+                ohlcv = OHLCVData(
+                    symbol=candle_data['symbol'],
+                    timeframe=candle_data['timeframe'],
+                    timestamp=candle_data['timestamp'],
+                    open=Decimal(str(candle_data['open'])),
+                    high=Decimal(str(candle_data['high'])),
+                    low=Decimal(str(candle_data['low'])),
+                    close=Decimal(str(candle_data['close'])),
+                    volume=Decimal(str(candle_data['volume']))
+                )
+                self.db.add(ohlcv)
+
             self.db.commit()
 
         except Exception as e:
