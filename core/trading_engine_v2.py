@@ -131,8 +131,14 @@ class TradingEngineV2:
                             print(f"  [DB 저장] 1분봉 {len(self.symbols)}개 코인 저장 완료")
                             last_save_minute = current_minute
                         except Exception as e:
-                            print(f"  [DB 커밋 에러] {str(e)}")
-                            thread_db.rollback()
+                            # UniqueViolation 에러는 무시 (중복 데이터)
+                            if 'UniqueViolation' in str(e) or 'duplicate key' in str(e):
+                                print(f"  [DB 중복 무시] 1분봉 데이터 이미 존재")
+                                thread_db.rollback()
+                                last_save_minute = current_minute
+                            else:
+                                print(f"  [DB 커밋 에러] {str(e)}")
+                                thread_db.rollback()
 
                     time.sleep(5)  # 5초마다
                 except Exception as e:
