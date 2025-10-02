@@ -224,12 +224,13 @@ def get_strategies():
     db = SessionLocal()
     try:
         # 전략별 거래 통계
+        from sqlalchemy import case
         stats = db.query(
             Strategy.name,
             func.count(Trade.id).label('total_trades'),
             func.sum(Trade.pnl).label('total_pnl'),
             func.avg(Trade.pnl_percent).label('avg_pnl_percent'),
-            func.sum(func.case((Trade.pnl > 0, 1), else_=0)).label('winning_trades')
+            func.sum(case((Trade.pnl > 0, 1), else_=0)).label('winning_trades')
         ).join(
             Trade, Strategy.id == Trade.strategy_id
         ).group_by(

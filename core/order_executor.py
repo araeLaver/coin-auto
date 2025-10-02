@@ -168,17 +168,36 @@ class OrderExecutor:
             side = 'SELL' if position.position_type == 'LONG' else 'BUY'
 
             if self.is_live_mode:
-                # LIVE 모드: 직접 API 호출 (코인 개수로)
+                # LIVE 모드: 잔고 체크 후 API 호출
+                balance = self.api.get_balance(symbol)
+                if balance.get('status') != '0000':
+                    self._log_error(f"청산 실패 ({symbol}): 잔고 조회 실패")
+                    # 포지션 강제 종료 (DB만 업데이트)
+                    position.status = 'CLOSED'
+                    position.closed_at = datetime.now()
+                    self.db.commit()
+                    return False
+
+                # 실제 보유 수량 확인
+                available_coins = float(balance['data'].get(f'available_{symbol.lower()}', 0))
+                if available_coins < quantity_coins * 0.99:  # 1% 여유
+                    self._log_error(f"청산 실패 ({symbol}): 보유 수량 부족 (DB: {quantity_coins:.8f}, 실제: {available_coins:.8f})")
+                    # 포지션 강제 종료
+                    position.status = 'CLOSED'
+                    position.closed_at = datetime.now()
+                    self.db.commit()
+                    return False
+
+                # 실제 주문
                 order_type = 'ask' if side == 'SELL' else 'bid'
                 order_price = round(current_price * 0.995, 0) if side == 'SELL' else round(current_price * 1.005, 0)
-
-                result = self.api.place_order(symbol, order_type, quantity_coins, order_price)
+                result = self.api.place_order(symbol, order_type, available_coins, order_price)
 
                 if result.get('status') == '0000':
                     order_result = {
                         'order_id': result.get('order_id'),
                         'filled_price': order_price,
-                        'filled_quantity': quantity_coins
+                        'filled_quantity': available_coins
                     }
                 else:
                     self._log_error(f"청산 주문 실패: {result.get('message')}")
