@@ -15,7 +15,8 @@
       "Bash(pip install:*)",
       "Bash(git push:*)",
       "WebSearch",
-      "WebFetch(domain:apidocs.bithumb.com)"
+      "WebFetch(domain:apidocs.bithumb.com)",
+      "WebFetch(domain:liable-margette-untab-c8b59ae3.koyeb.app)"
     ],
     "deny": [],
     "ask": []
