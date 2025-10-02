@@ -232,11 +232,34 @@ class OrderExecutor:
                     total_krw = float(data.get('total_krw', 0))
                     available_krw = float(data.get('available_krw', 0))
 
+                    # 보유 코인 평가액 계산
+                    crypto_holdings = {}
+                    total_crypto_value = 0
+
+                    for symbol in config.TARGET_PAIRS:
+                        # 보유 수량 조회
+                        coin_balance = float(data.get(f'total_{symbol.lower()}', 0))
+
+                        if coin_balance > 0:
+                            # 현재가 조회
+                            ticker = self.api.get_ticker(symbol)
+                            if ticker.get('status') == '0000':
+                                current_price = float(ticker['data'].get('closing_price', 0))
+                                coin_value = coin_balance * current_price
+
+                                crypto_holdings[symbol] = {
+                                    'balance': coin_balance,
+                                    'price': current_price,
+                                    'value': coin_value
+                                }
+                                total_crypto_value += coin_value
+
                     return {
                         'total_krw': total_krw,
                         'available_krw': available_krw,
-                        'total_crypto_value': 0,  # TODO: 암호화폐 평가
-                        'total_value': total_krw
+                        'total_crypto_value': total_crypto_value,
+                        'total_value': total_krw + total_crypto_value,
+                        'crypto_holdings': crypto_holdings
                     }
 
             # 페이퍼 트레이딩: DB에서 조회

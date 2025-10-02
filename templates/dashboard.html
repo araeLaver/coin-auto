@@ -100,9 +100,27 @@
             </div>
         </div>
 
+        <!-- Real Wallet Holdings -->
+        <div class="card">
+            <h2>💼 실제 보유 코인 (빗썸 지갑)</h2>
+            <table id="holdings-table">
+                <thead>
+                    <tr>
+                        <th>심볼</th>
+                        <th>보유량</th>
+                        <th>현재가</th>
+                        <th>평가금액</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4" class="loading">데이터 로딩 중...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
         <!-- Open Positions -->
         <div class="card">
-            <h2>📊 현재 오픈 포지션</h2>
+            <h2>📊 자동매매 오픈 포지션</h2>
             <table id="positions-table">
                 <thead>
                     <tr>
@@ -209,6 +227,12 @@
             document.getElementById('available').textContent = formatKRW(data.available_krw);
             document.getElementById('open-positions').textContent = data.open_positions;
             document.getElementById('today-trades').textContent = data.today_trades;
+
+            // 코인 평가액 표시
+            if (data.crypto_value > 0) {
+                document.getElementById('balance').innerHTML = formatKRW(data.balance) +
+                    '<br><small style="color: #9ca3af;">코인: ' + formatKRW(data.crypto_value) + '</small>';
+            }
         }
 
         async function loadSummary() {
@@ -221,6 +245,27 @@
             document.getElementById('total-pnl').className = 'value ' + (data.total_pnl >= 0 ? 'positive' : 'negative');
             document.getElementById('total-return').textContent = formatPercent(data.total_return);
             document.getElementById('total-return').className = 'value ' + (data.total_return >= 0 ? 'positive' : 'negative');
+        }
+
+        async function loadHoldings() {
+            const res = await fetch('/api/holdings');
+            const data = await res.json();
+
+            const tbody = document.querySelector('#holdings-table tbody');
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="loading">보유 코인 없음</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(h => `
+                <tr>
+                    <td><strong>${h.symbol}</strong></td>
+                    <td>${h.balance.toFixed(8)}</td>
+                    <td>${formatKRW(h.current_price)}</td>
+                    <td><strong>${formatKRW(h.value)}</strong></td>
+                </tr>
+            `).join('');
         }
 
         async function loadPositions() {
@@ -324,6 +369,7 @@
             await Promise.all([
                 loadStatus(),
                 loadSummary(),
+                loadHoldings(),
                 loadPositions(),
                 loadTrades(),
                 loadStrategies(),

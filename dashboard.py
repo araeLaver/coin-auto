@@ -40,17 +40,44 @@ def get_status():
             Trade.closed_at >= today_start
         ).count()
 
+        # 실제 계좌 잔고 조회 (live 모드일 때)
+        from core.order_executor import OrderExecutor
+        executor = OrderExecutor()
+        balance_info = executor.get_account_balance()
+
         return jsonify({
             'status': 'running',
             'mode': config.TRADE_MODE,
-            'balance': float(latest_balance.total_value) if latest_balance else config.INITIAL_CAPITAL,
-            'available_krw': float(latest_balance.available_krw) if latest_balance else config.INITIAL_CAPITAL,
+            'balance': balance_info.get('total_value', 0),
+            'available_krw': balance_info.get('available_krw', 0),
+            'crypto_value': balance_info.get('total_crypto_value', 0),
             'open_positions': open_positions_count,
             'today_trades': today_trades,
             'last_update': datetime.now().isoformat()
         })
     finally:
         db.close()
+
+
+@app.route('/api/holdings')
+def get_holdings():
+    """실제 보유 코인 목록"""
+    from core.order_executor import OrderExecutor
+    executor = OrderExecutor()
+    balance_info = executor.get_account_balance()
+
+    holdings = balance_info.get('crypto_holdings', {})
+
+    result = []
+    for symbol, data in holdings.items():
+        result.append({
+            'symbol': symbol,
+            'balance': data['balance'],
+            'current_price': data['price'],
+            'value': data['value']
+        })
+
+    return jsonify(result)
 
 
 @app.route('/api/positions')
