@@ -34,20 +34,22 @@ class OrderExecutor:
             signal_type = signal.signal_type
             entry_price = float(signal.entry_price)
 
-            # 수량 계산
-            quantity = position_size_krw / entry_price
-
-            # 최소 주문 수량 체크 (빗썸 기준)
-            min_order_amount = 1000  # 최소 1,000원
+            # 최소 주문 금액 체크 (빗썸 기준: 5,000원)
+            min_order_amount = 5000
             if position_size_krw < min_order_amount:
                 self._log_error(f"주문 금액 부족: {position_size_krw:.0f}원 < {min_order_amount}원")
                 return None
 
             # 주문 실행
             if self.is_live_mode:
-                order_result = self._execute_live_order(symbol, signal_type, quantity, entry_price)
+                order_result = self._execute_live_order(symbol, signal_type, position_size_krw, entry_price)
+                # 실제 체결된 수량 사용
+                actual_quantity = order_result.get('filled_quantity', 0)
             else:
+                # 모의 거래는 예상 수량 계산
+                quantity = position_size_krw / entry_price
                 order_result = self._execute_paper_order(symbol, signal_type, quantity, entry_price)
+                actual_quantity = order_result.get('filled_quantity', quantity)
 
             if not order_result:
                 return None
@@ -59,7 +61,7 @@ class OrderExecutor:
                 signal_id=signal.id,
                 position_type='LONG' if signal_type == 'BUY' else 'SHORT',
                 entry_price=signal.entry_price,
-                quantity=Decimal(str(quantity)),
+                quantity=Decimal(str(actual_quantity)),
                 current_price=signal.entry_price,
                 unrealized_pnl=Decimal('0'),
                 stop_loss=signal.stop_loss,
@@ -80,8 +82,8 @@ class OrderExecutor:
                 order_type='MARKET',
                 side='BUY' if signal_type == 'BUY' else 'SELL',
                 price=signal.entry_price,
-                quantity=Decimal(str(quantity)),
-                filled_quantity=Decimal(str(quantity)),
+                quantity=Decimal(str(actual_quantity)),
+                filled_quantity=Decimal(str(actual_quantity)),
                 status='FILLED',
                 executed_at=datetime.now()
             )
@@ -89,7 +91,7 @@ class OrderExecutor:
             self.db.add(order)
             self.db.commit()
 
-            self._log_info(f"포지션 오픈: {symbol} {signal_type} {quantity:.8f} @ {entry_price:.0f}원")
+            self._log_info(f"포지션 오픈: {symbol} {signal_type} {actual_quantity:.8f} @ {entry_price:.0f}원")
 
             return position
 
@@ -98,32 +100,38 @@ class OrderExecutor:
             return None
 
     def _execute_live_order(self, symbol: str, side: str, quantity: float, price: float) -> Optional[Dict]:
-        """실제 거래소 주문"""
+        """실제 거래소 주문 (지정가 주문으로 즉시 체결)"""
         try:
-            # 시장가 주문: market_bid / market_ask
-            order_type = 'market_bid' if side == 'BUY' else 'market_ask'
+            # 빗썸은 시장가 주문 미지원, 지정가로 즉시 체결
+            order_type = 'bid' if side == 'BUY' else 'ask'
 
-            # 빗썸 시장가 매수: units = KRW 금액
-            # 빗썸 시장가 매도: units = 코인 수량
+            # 즉시 체결을 위해 가격 조정
             if side == 'BUY':
-                # quantity는 포지션 크기(KRW), 그대로 사용
-                units = quantity
+                # 매수: 현재가보다 0.5% 높게 (즉시 체결)
+                order_price = round(price * 1.005, 0)  # 원 단위로 반올림
+                # 주문 수량 계산 (KRW → 코인), 소수점 8자리
+                units = round(quantity / order_price, 8)
             else:
-                # 매도 시 코인 수량 계산
-                units = quantity / price if price > 0 else 0
+                # 매도: 현재가보다 0.5% 낮게 (즉시 체결)
+                order_price = round(price * 0.995, 0)
+                # 매도 수량, 소수점 8자리
+                units = round(quantity / price, 8) if price > 0 else 0
+
+            # 디버깅 로그
+            self._log_info(f"주문 준비: {symbol} {side} | units={units:.8f}, price={order_price:.0f}, total={units*order_price:.0f}원")
 
             result = self.api.place_order(
                 symbol=symbol,
                 order_type=order_type,
                 quantity=units,
-                price=None  # 시장가는 price 없음
+                price=order_price
             )
 
             if result.get('status') == '0000':
                 return {
                     'order_id': result.get('order_id'),
-                    'filled_price': price,
-                    'filled_quantity': quantity
+                    'filled_price': order_price,
+                    'filled_quantity': units  # 실제 주문한 코인 수량
                 }
             else:
                 self._log_error(f"주문 실패: {result.get('message')} | 상세: {result}")
