@@ -100,14 +100,23 @@ class OrderExecutor:
     def _execute_live_order(self, symbol: str, side: str, quantity: float, price: float) -> Optional[Dict]:
         """실제 거래소 주문"""
         try:
-            order_type = 'bid' if side == 'BUY' else 'ask'
+            # 시장가 주문: market_bid / market_ask
+            order_type = 'market_bid' if side == 'BUY' else 'market_ask'
 
-            # 시장가 주문 (빗썸은 price=None이면 시장가)
+            # 빗썸 시장가 매수: units = KRW 금액
+            # 빗썸 시장가 매도: units = 코인 수량
+            if side == 'BUY':
+                # quantity는 포지션 크기(KRW), 그대로 사용
+                units = quantity
+            else:
+                # 매도 시 코인 수량 계산
+                units = quantity / price if price > 0 else 0
+
             result = self.api.place_order(
                 symbol=symbol,
                 order_type=order_type,
-                quantity=quantity,
-                price=None  # 시장가
+                quantity=units,
+                price=None  # 시장가는 price 없음
             )
 
             if result.get('status') == '0000':
@@ -117,7 +126,7 @@ class OrderExecutor:
                     'filled_quantity': quantity
                 }
             else:
-                self._log_error(f"주문 실패: {result.get('message')}")
+                self._log_error(f"주문 실패: {result.get('message')} | 상세: {result}")
                 return None
 
         except Exception as e:

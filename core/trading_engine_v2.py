@@ -86,6 +86,9 @@ class TradingEngineV2:
             """가격 데이터 지속 수집 (캐시 + DB 저장)"""
             from decimal import Decimal
 
+            # 스레드 전용 DB 세션
+            thread_db = SessionLocal()
+
             last_save_minute = None
 
             while self.is_running:
@@ -111,7 +114,7 @@ class TradingEngineV2:
                             if last_save_minute != current_minute:
                                 try:
                                     # 중복 체크
-                                    exists = self.db.query(OHLCVData).filter(
+                                    exists = thread_db.query(OHLCVData).filter(
                                         OHLCVData.symbol == symbol,
                                         OHLCVData.timeframe == '1m',
                                         OHLCVData.timestamp == current_minute
@@ -128,24 +131,27 @@ class TradingEngineV2:
                                             close=Decimal(str(price)),
                                             volume=Decimal(str(volume))
                                         )
-                                        self.db.add(ohlcv)
+                                        thread_db.add(ohlcv)
                                 except Exception as e:
                                     print(f"  [DB 저장 에러] {symbol}: {str(e)}")
 
                     # 1분마다 커밋
                     if last_save_minute != current_minute:
                         try:
-                            self.db.commit()
+                            thread_db.commit()
                             print(f"  [DB 저장] 1분봉 {len(self.symbols)}개 코인 저장 완료")
                             last_save_minute = current_minute
                         except Exception as e:
                             print(f"  [DB 커밋 에러] {str(e)}")
-                            self.db.rollback()
+                            thread_db.rollback()
 
                     time.sleep(5)  # 5초마다
                 except Exception as e:
                     self._log_error(f"가격 수집 에러: {str(e)}")
                     time.sleep(5)
+
+            # 스레드 종료 시 세션 닫기
+            thread_db.close()
 
         def collect_orderbooks():
             """호가창 데이터 지속 수집"""
