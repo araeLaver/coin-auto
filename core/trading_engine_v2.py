@@ -52,16 +52,17 @@ class TradingEngineV2:
         self.data_threads = []
 
     def _initialize_strategies(self) -> Dict:
-        """전략 초기화 - 호가창 스캘핑만 사용"""
+        """전략 초기화 - 초고속 실시간 스캘핑"""
         strategies = {}
 
-        # 호가창 스캘핑 전략만 사용 (단일 전략)
-        scalping_strategy = OrderbookScalpingStrategy()
+        # 초고속 실시간 수익률 스캘핑 전략
+        from strategies.hyper_scalping_strategy import HyperScalpingStrategy
+        hyper_strategy = HyperScalpingStrategy()
 
         strategies[1] = {
-            'instance': scalping_strategy,
-            'name': 'Orderbook Scalping',
-            'type': 'scalping'
+            'instance': hyper_strategy,
+            'name': 'Hyper Scalping',
+            'type': 'ultra_fast'
         }
 
         return strategies

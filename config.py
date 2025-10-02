@@ -72,11 +72,19 @@ TARGET_PAIRS = [
     'YFI', 'YGG', 'ZEC', 'ZEN', 'ZIL', 'ZRX', 'RUNE', 'INJ', 'DYDX', 'BLUR'
 ]
 
-# 우선순위 그룹 (초단타 - 초저가 초고변동성만)
+# 우선순위 그룹 (변동성 돌파 - 급등 가능성)
 PRIORITY_PAIRS = [
-    'PUMPBTC', 'PENGU', 'SOPH', 'F', 'H',      # 초저가 폭발형
-    'STAT', 'SOMI', 'MOODENG', 'FF', 'BLUE',   # 저가 변동성
-    'KAITO', 'EIGEN', '0G'                      # 중가 변동성
+    # 초저가 고변동성 (10-100원대)
+    'SOPH', 'F', 'H', 'STAT', 'BABY', 'TOSHI', 'TAVA', 'AL', 'ATH', 'CHZ', 'AMO', 'RSR', 'PEAQ', 'W',
+    'CUDIS', 'SPK', 'ELX', 'XCN', 'VET', 'ZIL', 'ICX', 'ONT', 'BLUE', 'BRETT',
+
+    # 저가 변동성 (100-500원대)
+    'PENGU', 'MOODENG', 'BIO', 'KAIA', 'FF', 'ENJ', 'BAT', 'ZRX', 'POPCAT', 'LA', 'CELO', 'SAND',
+    'MANA', 'UXLINK', 'HEMI', 'STRK', 'SEI', 'ALGO', 'TRX',
+
+    # 중가 변동성 (500-3000원대)
+    'SOMI', 'ENA', 'IMX', 'ETHFI', 'ME', 'DRIFT', 'OPEN', 'ARB', 'THE', 'STX', 'THETA', 'BARD',
+    'WAVES', 'SOON', 'MIRA', 'XLM', 'ADA', 'EIGEN', 'SNX', 'KAITO', '0G'
 ]
 
 # Data Collection Intervals (seconds)

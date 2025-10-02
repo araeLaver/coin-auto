@@ -161,27 +161,41 @@ class OrderExecutor:
         """
         try:
             symbol = position.symbol
-            quantity = float(position.quantity)
+            quantity_coins = float(position.quantity)  # 코인 개수
             entry_price = float(position.entry_price)
 
             # 청산 주문 (포지션과 반대 방향)
             side = 'SELL' if position.position_type == 'LONG' else 'BUY'
 
             if self.is_live_mode:
-                order_result = self._execute_live_order(symbol, side, quantity, current_price)
+                # LIVE 모드: 직접 API 호출 (코인 개수로)
+                order_type = 'ask' if side == 'SELL' else 'bid'
+                order_price = round(current_price * 0.995, 0) if side == 'SELL' else round(current_price * 1.005, 0)
+
+                result = self.api.place_order(symbol, order_type, quantity_coins, order_price)
+
+                if result.get('status') == '0000':
+                    order_result = {
+                        'order_id': result.get('order_id'),
+                        'filled_price': order_price,
+                        'filled_quantity': quantity_coins
+                    }
+                else:
+                    self._log_error(f"청산 주문 실패: {result.get('message')}")
+                    return False
             else:
-                order_result = self._execute_paper_order(symbol, side, quantity, current_price)
+                order_result = self._execute_paper_order(symbol, side, quantity_coins, current_price)
 
             if not order_result:
                 return False
 
             # 손익 계산
             if position.position_type == 'LONG':
-                pnl = (current_price - entry_price) * quantity
+                pnl = (current_price - entry_price) * quantity_coins
             else:
-                pnl = (entry_price - current_price) * quantity
+                pnl = (entry_price - current_price) * quantity_coins
 
-            pnl_percent = (pnl / (entry_price * quantity)) * 100 if (entry_price * quantity) > 0 else 0
+            pnl_percent = (pnl / (entry_price * quantity_coins)) * 100 if (entry_price * quantity_coins) > 0 else 0
 
             # 보유 시간 계산
             holding_time = (datetime.now() - position.opened_at).total_seconds() / 60  # 분
@@ -220,8 +234,8 @@ class OrderExecutor:
                 order_type='MARKET',
                 side=side,
                 price=Decimal(str(current_price)),
-                quantity=Decimal(str(quantity)),
-                filled_quantity=Decimal(str(quantity)),
+                quantity=Decimal(str(quantity_coins)),
+                filled_quantity=Decimal(str(quantity_coins)),
                 status='FILLED',
                 executed_at=datetime.now()
             )
@@ -229,7 +243,7 @@ class OrderExecutor:
             self.db.add(order)
             self.db.commit()
 
-            self._log_info(f"포지션 청산: {symbol} {side} {quantity:.8f} @ {current_price:.0f}원 | "
+            self._log_info(f"포지션 청산: {symbol} {side} {quantity_coins:.8f} @ {current_price:.0f}원 | "
                           f"손익: {pnl:,.0f}원 ({pnl_percent:+.2f}%) | 이유: {reason}")
 
             return True
