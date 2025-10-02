@@ -72,6 +72,11 @@ class TelegramNotifier:
         pnl_percent = trade_data['pnl_percent']
         emoji = "🟢" if pnl > 0 else "🔴"
 
+        # 당일 수익률 계산
+        daily_profit = self._get_daily_profit()
+        daily_pnl = daily_profit['pnl']
+        daily_pnl_percent = daily_profit['pnl_percent']
+
         message = f"""
 {emoji} <b>포지션 청산</b>
 
@@ -84,6 +89,8 @@ class TelegramNotifier:
 
 ⏱ 보유시간: {trade_data['holding_time']}
 📝 청산이유: {trade_data['exit_reason']}
+
+📊 <b>오늘 수익: {daily_pnl:+,.0f}원 ({daily_pnl_percent:+.2f}%)</b>
 
 ⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
@@ -180,6 +187,46 @@ class TelegramNotifier:
 ⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 """
         self.send_message(message)
+
+    def _get_daily_profit(self) -> dict:
+        """당일 수익률 계산"""
+        try:
+            from database import SessionLocal, Trade, AccountBalance
+            from datetime import date
+
+            db = SessionLocal()
+            today = date.today()
+
+            # 당일 거래 조회
+            today_trades = db.query(Trade).filter(
+                Trade.closed_at >= datetime.combine(today, datetime.min.time())
+            ).all()
+
+            # 당일 총 손익
+            total_pnl = sum(float(t.pnl) for t in today_trades)
+
+            # 당일 시작 잔고 (어제 마지막 잔고 또는 초기 자본)
+            yesterday_balance = db.query(AccountBalance).filter(
+                AccountBalance.timestamp < datetime.combine(today, datetime.min.time())
+            ).order_by(AccountBalance.timestamp.desc()).first()
+
+            start_balance = float(yesterday_balance.total_value) if yesterday_balance else config.INITIAL_CAPITAL
+
+            # 수익률 계산
+            pnl_percent = (total_pnl / start_balance * 100) if start_balance > 0 else 0
+
+            db.close()
+
+            return {
+                'pnl': total_pnl,
+                'pnl_percent': pnl_percent,
+                'start_balance': start_balance,
+                'trades_count': len(today_trades)
+            }
+
+        except Exception as e:
+            print(f"당일 수익률 계산 실패: {e}")
+            return {'pnl': 0, 'pnl_percent': 0, 'start_balance': 0, 'trades_count': 0}
 
 
 # 테스트

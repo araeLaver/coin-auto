@@ -34,35 +34,30 @@ TAKE_PROFIT_PERCENT = float(os.getenv('TAKE_PROFIT_PERCENT', 0.05))
 MAX_DAILY_LOSS = float(os.getenv('MAX_DAILY_LOSS', 0.05))
 MAX_OPEN_POSITIONS = int(os.getenv('MAX_OPEN_POSITIONS', 3))
 
-# Target Trading Pairs (거래대금 상위 100개 - 최대 수익 기회)
-# 거래량 1억원 이상 + 변동률 0.5% 이상 코인 전체
+# Target Trading Pairs - 단타 전용 (저가 고변동성 코인만)
+# 가격: 10원~5000원, 변동성 높음, 최소 주문량 충족 가능
 TARGET_PAIRS = [
-    # Top 20 (거래량 최상위)
-    'USDT', 'XRP', 'BTC', 'ETH', 'SOMI', 'SOL', 'DOGE', 'WLD', 'PENGU', 'FF',
-    'XPL', 'PUMPBTC', 'ENA', 'AVL', '0G', 'KAITO', 'STAT', 'ADA', 'SUI', 'ONDO',
+    # 초저가 고변동성 (10원~100원) - 단타 최적
+    'PUMPBTC', 'PENGU', 'H', 'F', 'SOPH', 'ATH', 'SPK', 'CHZ', 'BABY', 'BRETT',
+    'AL', 'CUDIS', 'TOSHI', 'TAVA', 'XCN', 'LBL', 'AMO', 'RSR', 'IQ', 'BTR',
 
-    # 21-40 (고거래량)
-    'MIRA', 'XLM', 'MOODENG', 'PEPE', 'PUMP', 'AVNT', 'ORDER', 'KAIA', 'H', 'SNX',
-    'LBL', 'WLFI', 'VIRTUAL', 'BLUE', 'IQ', 'BONK', 'LINK', 'BARD', 'TRUMP', 'SOON',
+    # 저가 변동성 (100원~500원)
+    'STAT', 'FF', 'BLUE', 'AVL', 'MOODENG', 'HEMI', 'AWE', 'ELX', 'PEAQ', 'BIO',
+    'STRK', 'W', 'KAIA', 'WLFI', 'UXLINK', 'MERL', 'DOGE', 'POPCAT', 'TRX', 'SAND',
 
-    # 41-60 (중거래량)
-    'BTR', 'F', 'EIGEN', 'SHIB', 'ETC', 'IP', 'FLUID', 'HBAR', 'AVAX', 'ETHFI',
-    'TRX', 'BCH', 'BIO', 'IMX', 'W', 'ENS', 'ME', 'BRETT', 'DRIFT', 'RSR',
+    # 중저가 활발 (500원~2000원)
+    'SOMI', 'ORDER', 'SOON', 'XLM', 'LA', 'MIRA', 'SNX', 'BARD', 'ADA', 'ONDO',
+    'XPL', 'ENA', 'ME', 'DRIFT', 'USDT', 'USDC', 'VIRTUAL', 'AVNT', 'CELO', 'ARB',
 
-    # 61-80 (활발한 거래)
-    'PEAQ', 'OMNI', 'SEI', 'AL', 'ATH', 'USDC', 'SOPH', 'BABY', 'TOSHI', 'TAVA',
-    'NEAR', 'MNT', 'LA', 'STRK', 'UXLINK', 'HEMI', 'DOT', 'NMR', 'AWE', 'MIX',
-
-    # 81-100 (기회 코인)
-    'BERA', 'ELX', 'MERL', 'SPK', 'CHZ', 'AMO', 'UNI', 'BSV', 'SAND', 'OPEN',
-    'PROVE', 'APT', 'CUDIS', 'AAVE', 'CELO', 'POPCAT', 'XCN', 'ARB', 'STX', 'THE'
+    # 중가 변동성 (2000원~5000원)
+    'KAITO', 'ETHFI', 'EIGEN', '0G', 'SEI', 'SUI', 'BERA', 'OMNI', 'NEAR', 'MNT'
 ]
 
-# 우선순위 그룹 (초고속 스캔 - 변동성 최고)
+# 우선순위 그룹 (초단타 - 초저가 초고변동성만)
 PRIORITY_PAIRS = [
-    'SOMI', 'STAT', 'SNX', 'FLUID', 'EIGEN',  # 고변동성
-    'BTC', 'ETH', 'XRP', 'SOL', 'DOGE',       # 메이저
-    'PENGU', 'MOODENG', 'TRUMP', 'PEPE'       # 밈코인
+    'PUMPBTC', 'PENGU', 'SOPH', 'F', 'H',      # 초저가 폭발형
+    'STAT', 'SOMI', 'MOODENG', 'FF', 'BLUE',   # 저가 변동성
+    'KAITO', 'EIGEN', '0G'                      # 중가 변동성
 ]
 
 # Data Collection Intervals (seconds)

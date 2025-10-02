@@ -11,10 +11,7 @@ from decimal import Decimal
 
 from database import SessionLocal, TradingSignal, Position, Strategy, SystemLog, OHLCVData
 from strategies import (
-    TrendFollowingStrategy,
-    MeanReversionStrategy,
-    MomentumBreakoutStrategy,
-    OrderbookImbalanceStrategy
+    OrderbookScalpingStrategy
 )
 from strategies.strategy_selector import StrategySelector
 from core.risk_manager import RiskManager
@@ -55,26 +52,17 @@ class TradingEngineV2:
         self.data_threads = []
 
     def _initialize_strategies(self) -> Dict:
-        """전략 초기화 및 DB와 매핑"""
+        """전략 초기화 - 호가창 스캘핑만 사용"""
         strategies = {}
 
-        # DB에서 전략 조회
-        db_strategies = self.db.query(Strategy).filter(Strategy.is_active == True).all()
+        # 호가창 스캘핑 전략만 사용 (단일 전략)
+        scalping_strategy = OrderbookScalpingStrategy()
 
-        strategy_map = {
-            'Trend Following': TrendFollowingStrategy(),
-            'Mean Reversion': MeanReversionStrategy(),
-            'Momentum Breakout': MomentumBreakoutStrategy(),
-            'Orderbook Imbalance': OrderbookImbalanceStrategy()
+        strategies[1] = {
+            'instance': scalping_strategy,
+            'name': 'Orderbook Scalping',
+            'type': 'scalping'
         }
-
-        for db_strat in db_strategies:
-            if db_strat.name in strategy_map:
-                strategies[db_strat.id] = {
-                    'instance': strategy_map[db_strat.name],
-                    'name': db_strat.name,
-                    'type': db_strat.strategy_type
-                }
 
         return strategies
 
