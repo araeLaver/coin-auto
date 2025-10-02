@@ -3,7 +3,15 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship, sessionmaker
 from datetime import datetime
+import pytz
 import config
+
+# 한국 시간대 설정
+KST = pytz.timezone('Asia/Seoul')
+
+def now_kst():
+    """한국 시간 반환"""
+    return datetime.now(KST)
 
 Base = declarative_base()
 
