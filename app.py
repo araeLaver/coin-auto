@@ -21,6 +21,26 @@ def run_trading_engine():
         except Exception as e:
             print(f"⚠️  DB 초기화 스킵: {str(e)}")
 
+        # 초기 데이터 수집 (OHLCV 데이터가 없으면)
+        from database import SessionLocal, OHLCVData
+        db = SessionLocal()
+        ohlcv_count = db.query(OHLCVData).count()
+        db.close()
+
+        if ohlcv_count < 50:
+            print(f"📊 OHLCV 데이터 부족 ({ohlcv_count}개) - 초기 수집 시작...")
+            from collect_initial_data import collect_historical_candles, collect_realtime_data
+            import config
+
+            # 각 코인별로 최근 100개 캔들 수집
+            for symbol in config.TARGET_PAIRS:
+                for tf in ['1m', '5m', '15m']:
+                    collect_historical_candles(symbol, tf, 100)
+                    import time
+                    time.sleep(0.5)
+
+            print("✅ 초기 데이터 수집 완료")
+
         # 트레이딩 엔진 실행
         engine = TradingEngineV2()
         engine.run(interval=60)
