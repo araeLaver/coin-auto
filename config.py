@@ -34,23 +34,42 @@ TAKE_PROFIT_PERCENT = float(os.getenv('TAKE_PROFIT_PERCENT', 0.05))
 MAX_DAILY_LOSS = float(os.getenv('MAX_DAILY_LOSS', 0.05))
 MAX_OPEN_POSITIONS = int(os.getenv('MAX_OPEN_POSITIONS', 3))
 
-# Target Trading Pairs - 단타 전용 (저가 고변동성 코인만)
-# 가격: 10원~5000원, 변동성 높음, 최소 주문량 충족 가능
+# Target Trading Pairs - 공격적 스캘핑 (300개 이상 코인)
 TARGET_PAIRS = [
-    # 초저가 고변동성 (10원~100원) - 단타 최적
-    'PUMPBTC', 'PENGU', 'H', 'F', 'SOPH', 'ATH', 'SPK', 'CHZ', 'BABY', 'BRETT',
-    'AL', 'CUDIS', 'TOSHI', 'TAVA', 'XCN', 'LBL', 'AMO', 'RSR', 'IQ', 'BTR',
+    # Top 50 - 초고거래량
+    'USDT', 'XRP', 'BTC', 'ETH', 'SOMI', 'SOL', 'DOGE', 'WLD', 'PENGU', 'FF',
+    'XPL', 'PUMPBTC', 'ENA', 'AVL', '0G', 'KAITO', 'STAT', 'ADA', 'SUI', 'ONDO',
+    'MIRA', 'XLM', 'MOODENG', 'PEPE', 'PUMP', 'AVNT', 'ORDER', 'KAIA', 'H', 'SNX',
+    'LBL', 'WLFI', 'VIRTUAL', 'BLUE', 'IQ', 'BONK', 'LINK', 'BARD', 'TRUMP', 'SOON',
+    'BTR', 'F', 'EIGEN', 'SHIB', 'ETC', 'IP', 'FLUID', 'HBAR', 'AVAX', 'ETHFI',
 
-    # 저가 변동성 (100원~500원)
-    'STAT', 'FF', 'BLUE', 'AVL', 'MOODENG', 'HEMI', 'AWE', 'ELX', 'PEAQ', 'BIO',
-    'STRK', 'W', 'KAIA', 'WLFI', 'UXLINK', 'MERL', 'DOGE', 'POPCAT', 'TRX', 'SAND',
+    # 51-100 - 고거래량
+    'TRX', 'BCH', 'BIO', 'IMX', 'W', 'ENS', 'ME', 'BRETT', 'DRIFT', 'RSR',
+    'PEAQ', 'OMNI', 'SEI', 'AL', 'ATH', 'USDC', 'SOPH', 'BABY', 'TOSHI', 'TAVA',
+    'NEAR', 'MNT', 'LA', 'STRK', 'UXLINK', 'HEMI', 'DOT', 'NMR', 'AWE', 'MIX',
+    'BERA', 'ELX', 'MERL', 'SPK', 'CHZ', 'AMO', 'UNI', 'BSV', 'SAND', 'OPEN',
+    'PROVE', 'APT', 'CUDIS', 'AAVE', 'CELO', 'POPCAT', 'XCN', 'ARB', 'STX', 'THE',
 
-    # 중저가 활발 (500원~2000원)
-    'SOMI', 'ORDER', 'SOON', 'XLM', 'LA', 'MIRA', 'SNX', 'BARD', 'ADA', 'ONDO',
-    'XPL', 'ENA', 'ME', 'DRIFT', 'USDT', 'USDC', 'VIRTUAL', 'AVNT', 'CELO', 'ARB',
+    # 101-150 - 중거래량
+    'LTC', 'MATIC', 'ATOM', 'FIL', 'VET', 'ALGO', 'MANA', 'AXS', 'THETA', 'EGLD',
+    'FTM', 'KLAY', 'WAVES', 'QTUM', 'ZIL', 'ICX', 'ONT', 'ZRX', 'BAT', 'ENJ',
+    'STORJ', 'CVC', 'GRT', 'COMP', 'MKR', 'SNT', 'KNC', 'BAL', 'UMA', 'BAND',
+    'ANKR', 'CRV', 'SUSHI', 'YFI', 'REN', 'LRC', 'NU', 'KEEP', 'OXT', 'NMR',
+    'SKL', 'MLN', 'GNO', 'OCEAN', 'PUNDIX', 'T', 'PAXG', 'CHR', 'SXP', 'AMP',
 
-    # 중가 변동성 (2000원~5000원)
-    'KAITO', 'ETHFI', 'EIGEN', '0G', 'SEI', 'SUI', 'BERA', 'OMNI', 'NEAR', 'MNT'
+    # 151-200 - 활발한 거래
+    'AERGO', 'ANT', 'ARDR', 'AST', 'AUDIO', 'AXL', 'BOBA', 'BLUR', 'CTXC', 'CYBER',
+    'DYDX', 'FIDA', 'FLM', 'FLOW', 'FX', 'GALA', 'GLM', 'GMT', 'GMX', 'HIFI',
+    'HNT', 'ICP', 'JASMY', 'JST', 'JUP', 'KAVA', 'LDO', 'LOOM', 'LSK', 'MAGIC',
+    'MANA', 'MASK', 'MATIC', 'MINA', 'MTL', 'NEST', 'OMG', 'ONE', 'OP', 'ORBS',
+    'PENDLE', 'PLA', 'POLYX', 'POWR', 'PYTH', 'QKC', 'RAD', 'RDNT', 'REQ', 'RLC',
+
+    # 201-250 - 기회 코인
+    'RNDR', 'RSS3', 'SC', 'SFP', 'SLICE', 'SNT', 'SOL', 'SPELL', 'SSV', 'STEEM',
+    'STMX', 'STORJ', 'STPT', 'STX', 'SUN', 'SUPER', 'SUSHI', 'SYN', 'T', 'TIA',
+    'TLM', 'TON', 'TORN', 'TRB', 'TRU', 'TWT', 'UMA', 'UNI', 'USTC', 'VET',
+    'VOXEL', 'WAXP', 'WBTC', 'WOO', 'XEC', 'XEM', 'XLM', 'XRP', 'XTZ', 'XVS',
+    'YFI', 'YGG', 'ZEC', 'ZEN', 'ZIL', 'ZRX', 'RUNE', 'INJ', 'DYDX', 'BLUR'
 ]
 
 # 우선순위 그룹 (초단타 - 초저가 초고변동성만)

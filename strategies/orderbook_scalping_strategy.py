@@ -12,13 +12,14 @@ class OrderbookScalpingStrategy(BaseStrategy):
 
     def __init__(self, parameters: Dict = None):
         default_params = {
-            'wall_size_threshold': 3.0,  # 매수/매도 벽 기준 (평균 대비)
-            'imbalance_threshold': 1.5,   # 호가 불균형 비율
-            'spread_threshold': 0.003,    # 최대 스프레드 0.3%
-            'min_wall_distance': 0.008,   # 벽까지 최소 거리 0.8%
-            'quick_profit_target': 0.008, # 익절 0.8% (수수료 0.5% 포함)
-            'stop_loss': 0.008,           # 손절 0.8%
+            'wall_size_threshold': 2.5,  # 매수/매도 벽 기준 (평균 대비) - 더 민감하게
+            'imbalance_threshold': 1.3,   # 호가 불균형 비율 - 더 공격적
+            'spread_threshold': 0.005,    # 최대 스프레드 0.5% - 더 넓게
+            'min_wall_distance': 0.01,    # 벽까지 최소 거리 1%
+            'quick_profit_target': 0.006, # 익절 0.6% (수수료 0.5% 포함, 0.1% 실수익)
+            'stop_loss': 0.006,           # 손절 0.6%
             'fee_rate': 0.005,            # 빗썸 왕복 수수료 0.5%
+            'min_confidence': 0.6,        # 최소 신뢰도 낮춤 (더 많은 진입)
         }
         params = {**default_params, **(parameters or {})}
         super().__init__('Orderbook Scalping', 'scalping', params)

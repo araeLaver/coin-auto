@@ -147,25 +147,40 @@ def get_trades():
 
 @app.route('/api/performance')
 def get_performance():
-    """일일 성과 (최근 30일)"""
-    db = SessionLocal()
-    try:
-        performances = db.query(DailyPerformance).order_by(
-            DailyPerformance.date.desc()
-        ).limit(30).all()
+    """일일 실제 거래 기반 성과 (최근 30일)"""
+    from datetime import date, timedelta
+    from api import BithumbAPI
 
+    db = SessionLocal()
+    api = BithumbAPI()
+
+    try:
+        today = date.today()
         result = []
-        for perf in performances:
+
+        for i in range(29, -1, -1):
+            target_date = today - timedelta(days=i)
+
+            # 해당일 청산 완료된 거래
+            day_trades = db.query(Trade).filter(
+                Trade.closed_at >= datetime.combine(target_date, datetime.min.time()),
+                Trade.closed_at < datetime.combine(target_date + timedelta(days=1), datetime.min.time())
+            ).all()
+
+            if not day_trades:
+                continue
+
+            day_pnl = sum(float(t.pnl) for t in day_trades)
+            winning = len([t for t in day_trades if float(t.pnl) > 0])
+            losing = len([t for t in day_trades if float(t.pnl) <= 0])
+
             result.append({
-                'date': perf.date.isoformat(),
-                'starting_balance': float(perf.starting_balance),
-                'ending_balance': float(perf.ending_balance),
-                'pnl': float(perf.total_pnl),
-                'pnl_percent': float(perf.pnl_percent),
-                'total_trades': perf.total_trades,
-                'winning_trades': perf.winning_trades,
-                'losing_trades': perf.losing_trades,
-                'win_rate': (perf.winning_trades / perf.total_trades * 100) if perf.total_trades > 0 else 0
+                'date': target_date.isoformat(),
+                'pnl': day_pnl,
+                'total_trades': len(day_trades),
+                'winning_trades': winning,
+                'losing_trades': losing,
+                'win_rate': (winning / len(day_trades) * 100) if day_trades else 0
             })
 
         return jsonify(result)
