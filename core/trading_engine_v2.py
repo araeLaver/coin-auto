@@ -206,6 +206,8 @@ class TradingEngineV2:
     def execute_trading_cycle(self):
         """트레이딩 사이클 실행"""
 
+        print(f"\n대상 코인: {len(self.symbols)}개")
+
         for symbol in self.symbols:
             try:
                 # 1. 현재가 확인
