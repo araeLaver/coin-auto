@@ -145,8 +145,7 @@ class BithumbAPI:
         """
         endpoint = "/info/balance"
         params = {
-            'order_currency': currency,
-            'payment_currency': 'KRW'
+            'currency': currency  # order_currency가 아니라 currency
         }
         return self._request('POST', endpoint, params=params, signed=True)
 
