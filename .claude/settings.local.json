@@ -16,7 +16,8 @@
       "Bash(git push:*)",
       "WebSearch",
       "WebFetch(domain:apidocs.bithumb.com)",
-      "WebFetch(domain:liable-margette-untab-c8b59ae3.koyeb.app)"
+      "WebFetch(domain:liable-margette-untab-c8b59ae3.koyeb.app)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

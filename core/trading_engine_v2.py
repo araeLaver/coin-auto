@@ -9,7 +9,7 @@ from typing import Dict, List, Optional
 from datetime import datetime
 from decimal import Decimal
 
-from database import SessionLocal, TradingSignal, Position, Strategy, SystemLog
+from database import SessionLocal, TradingSignal, Position, Strategy, SystemLog, OHLCVData
 from strategies import (
     TrendFollowingStrategy,
     MeanReversionStrategy,
@@ -80,20 +80,68 @@ class TradingEngineV2:
 
     def start_data_collection(self):
         """백그라운드에서 데이터 수집 시작"""
+        self.is_running = True
 
         def collect_prices():
-            """가격 데이터 지속 수집"""
+            """가격 데이터 지속 수집 (캐시 + DB 저장)"""
+            from decimal import Decimal
+
+            last_save_minute = None
+
             while self.is_running:
                 try:
+                    current_time = datetime.now()
+                    current_minute = current_time.replace(second=0, microsecond=0)
+
                     for symbol in self.symbols:
                         ticker = self.api.get_ticker(symbol)
                         if ticker.get('status') == '0000':
                             data = ticker['data']
+                            price = float(data.get('closing_price', 0))
+                            volume = float(data.get('units_traded_24H', 0))
+
+                            # 캐시 업데이트
                             self.market_data_cache[symbol] = {
-                                'price': float(data.get('closing_price', 0)),
-                                'volume': float(data.get('units_traded_24H', 0)),
-                                'timestamp': datetime.now()
+                                'price': price,
+                                'volume': volume,
+                                'timestamp': current_time
                             }
+
+                            # 1분마다 DB에 저장 (1분봉)
+                            if last_save_minute != current_minute:
+                                try:
+                                    # 중복 체크
+                                    exists = self.db.query(OHLCVData).filter(
+                                        OHLCVData.symbol == symbol,
+                                        OHLCVData.timeframe == '1m',
+                                        OHLCVData.timestamp == current_minute
+                                    ).first()
+
+                                    if not exists:
+                                        ohlcv = OHLCVData(
+                                            symbol=symbol,
+                                            timeframe='1m',
+                                            timestamp=current_minute,
+                                            open=Decimal(str(price)),
+                                            high=Decimal(str(price)),
+                                            low=Decimal(str(price)),
+                                            close=Decimal(str(price)),
+                                            volume=Decimal(str(volume))
+                                        )
+                                        self.db.add(ohlcv)
+                                except Exception as e:
+                                    print(f"  [DB 저장 에러] {symbol}: {str(e)}")
+
+                    # 1분마다 커밋
+                    if last_save_minute != current_minute:
+                        try:
+                            self.db.commit()
+                            print(f"  [DB 저장] 1분봉 {len(self.symbols)}개 코인 저장 완료")
+                            last_save_minute = current_minute
+                        except Exception as e:
+                            print(f"  [DB 커밋 에러] {str(e)}")
+                            self.db.rollback()
+
                     time.sleep(5)  # 5초마다
                 except Exception as e:
                     self._log_error(f"가격 수집 에러: {str(e)}")
