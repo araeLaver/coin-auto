@@ -270,8 +270,8 @@ class TradingEngineV2:
 
                 print(f"\n[{symbol}] 현재가: {current_price:,.0f}원")
 
-                # 2. 기존 포지션 관리
-                self._manage_positions(symbol, current_price)
+                # 2. 기존 포지션 관리 및 물타기 체크
+                averaging_down_executed = self._manage_positions(symbol, current_price)
 
                 # 3. 리스크 체크
                 if not self.risk_manager.check_daily_loss_limit():
@@ -355,18 +355,33 @@ class TradingEngineV2:
                 import traceback
                 traceback.print_exc()
 
-    def _manage_positions(self, symbol: str, current_price: float):
-        """포지션 관리 및 자동 청산"""
+    def _manage_positions(self, symbol: str, current_price: float) -> bool:
+        """포지션 관리, 자동 청산, 물타기"""
 
         open_positions = self.db.query(Position).filter(
             Position.symbol == symbol,
             Position.status == 'OPEN'
         ).all()
 
+        averaging_down_executed = False
+
         for position in open_positions:
             try:
                 # 현재 손익 업데이트
                 self.risk_manager.update_position_metrics(position, current_price)
+
+                # 물타기 체크 (손실 포지션만)
+                entry_price = float(position.entry_price)
+                pnl_percent = self.risk_manager.calculate_pnl_percent(position, current_price)
+
+                if pnl_percent < -2 and pnl_percent > -5 and not averaging_down_executed:
+                    # 2-5% 손실 구간에서 물타기 (1회만)
+                    # 보유 시간 5분 이상이면 물타기
+                    holding_minutes = (datetime.now() - position.opened_at).total_seconds() / 60
+                    if holding_minutes >= 5:
+                        averaging_down_executed = self._execute_averaging_down(position, current_price)
+                        if averaging_down_executed:
+                            continue  # 물타기 실행 후 청산 체크 스킵
 
                 # 청산 여부 확인
                 should_close, reason = self.risk_manager.should_close_position(position, current_price)
@@ -406,6 +421,61 @@ class TradingEngineV2:
 
             except Exception as e:
                 self._log_error(f"포지션 관리 에러: {str(e)}")
+
+        return averaging_down_executed
+
+    def _execute_averaging_down(self, position: Position, current_price: float) -> bool:
+        """물타기 실행 - 평균단가 낮추기"""
+        try:
+            symbol = position.symbol
+            entry_price = float(position.entry_price)
+            quantity = float(position.quantity)
+
+            # 계좌 잔고 확인
+            balance = self.order_executor.get_account_balance()
+            available_krw = balance.get('available_krw', 0)
+
+            # 원래 투자금액의 50%만 추가 (물타기)
+            original_investment = entry_price * quantity
+            additional_size = min(original_investment * 0.5, available_krw)
+
+            if additional_size < 5000:  # 최소 5천원
+                return False
+
+            # 추가 매수 수량 계산
+            additional_quantity = additional_size / current_price
+
+            print(f"  🔄 물타기 실행: {symbol} {additional_quantity:.8f}개 추가매수 ({additional_size:,.0f}원)")
+
+            # 실제 주문 실행
+            if self.order_executor.is_live_mode:
+                order_type = 'bid'
+                order_price = round(current_price * 1.005, 0)
+                result = self.order_executor.api.place_order(symbol, order_type, additional_quantity, order_price)
+
+                if result.get('status') != '0000':
+                    print(f"  ❌ 물타기 주문 실패: {result.get('message')}")
+                    return False
+
+            # 포지션 평균단가 계산
+            total_quantity = quantity + additional_quantity
+            avg_price = (entry_price * quantity + current_price * additional_quantity) / total_quantity
+
+            # 포지션 업데이트
+            position.entry_price = Decimal(str(avg_price))
+            position.quantity = Decimal(str(total_quantity))
+            position.stop_loss = Decimal(str(avg_price * 0.985))  # 새 평균가 기준 -1.5%
+            position.take_profit = Decimal(str(avg_price * 1.012))  # 새 평균가 기준 +1.2%
+
+            self.db.commit()
+
+            print(f"  ✅ 물타기 완료: 평균단가 {entry_price:,.0f}원 → {avg_price:,.0f}원")
+
+            return True
+
+        except Exception as e:
+            self._log_error(f"물타기 실행 에러: {str(e)}")
+            return False
 
     def _select_best_signal(self, signals: List[Dict]) -> Optional[Dict]:
         """최적 시그널 선택"""
