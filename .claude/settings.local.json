@@ -22,7 +22,8 @@
       "Bash(xargs -r kill -9)",
       "Bash(taskkill:*)",
       "Bash(curl:*)",
-      "Bash(koyeb services:*)"
+      "Bash(koyeb services:*)",
+      "Bash(wmic:*)"
     ],
     "deny": [],
     "ask": []

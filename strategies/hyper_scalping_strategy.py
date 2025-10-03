@@ -19,9 +19,9 @@ class HyperScalpingStrategy(BaseStrategy):
             'instant_profit_target': 0.012,    # 1.2% 익절 (수수료 0.5% 제외 0.7% 순익)
             'quick_profit_target': 0.015,      # 1.5% 익절
             'ultra_quick_stop': 0.015,         # 1.5% 손절 (빠른 손절)
-            'price_spike_threshold': 0.008,    # 0.8% 급등 포착
-            'min_volume_ratio': 1.5,           # 거래량 조건 강화
-            'min_confidence': 0.70,            # 신뢰도 상향
+            'price_spike_threshold': 0.003,    # 0.3% 급등 포착 (매우 공격적)
+            'min_volume_ratio': 1.0,           # 거래량 조건 완화
+            'min_confidence': 0.50,            # 신뢰도 하향 (더 많은 거래)
         }
         params = {**default_params, **(parameters or {})}
         super().__init__('Hyper Scalping', 'ultra_fast', params)
@@ -76,11 +76,11 @@ class HyperScalpingStrategy(BaseStrategy):
                 }
             }
 
-        # 전략 2: 상승 추세 (0.3% 이상 포착)
-        elif price_change_1m > 0.003:  # 0.3% 이상 상승
-            if volume_ratio > 1.2:  # 거래량 확인
-                strength = 60
-                confidence = 0.65
+        # 전략 2: 상승 추세 (0.2% 이상 포착 - 매우 공격적)
+        elif price_change_1m > 0.002:  # 0.2% 이상 상승
+            if volume_ratio > 0.8:  # 거래량 조건 완화
+                strength = 55
+                confidence = 0.55
 
                 return {
                     'signal_type': 'BUY',
