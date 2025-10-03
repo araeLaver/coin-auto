@@ -20,7 +20,8 @@
       "Bash(timeout:*)",
       "Bash(awk:*)",
       "Bash(xargs -r kill -9)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

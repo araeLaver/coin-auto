@@ -41,9 +41,9 @@ def run_trading_engine():
 
             print("✅ 초기 데이터 수집 완료")
 
-        # 트레이딩 엔진 실행
+        # 트레이딩 엔진 실행 (10초 주기로 빠른 거래)
         engine = TradingEngineV2()
-        engine.run(interval=60)
+        engine.run(interval=10)
     except Exception as e:
         print(f"❌ 자동매매 엔진 에러: {str(e)}")
         import traceback
