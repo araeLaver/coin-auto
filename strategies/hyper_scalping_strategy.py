@@ -35,15 +35,8 @@ class HyperScalpingStrategy(BaseStrategy):
         if current_price <= 0:
             return None
 
-        # 실시간 체크 (1초 이내 중복 방지)
-        now = time.time()
-        if symbol in self.last_check_time:
-            if now - self.last_check_time[symbol] < 1:
-                return None
-        self.last_check_time[symbol] = now
-
         # 거래량 체크 (옵션)
-        volume_ratio = indicators.get('volume_ratio', 1.5)  # 기본값 1.5로 통과
+        volume_ratio = indicators.get('volume_ratio', 1.0)  # 기본값 1.0로 통과
 
         # 캐시된 이전 가격과 비교
         if symbol not in self.last_prices:
