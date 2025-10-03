@@ -257,6 +257,9 @@ class TradingEngineV2:
 
         print(f"\n대상 코인: {len(self.symbols)}개")
 
+        # 먼저 모든 오픈 포지션 체크 및 청산
+        self._check_all_positions()
+
         for symbol in self.symbols:
             try:
                 # 1. 현재가 확인
@@ -354,6 +357,42 @@ class TradingEngineV2:
                 self._log_error(f"[{symbol}] 트레이딩 사이클 에러: {str(e)}")
                 import traceback
                 traceback.print_exc()
+
+    def _check_all_positions(self):
+        """모든 오픈 포지션 체크 및 1분 이상 포지션 강제 청산"""
+        try:
+            all_positions = self.db.query(Position).filter(Position.status == 'OPEN').all()
+
+            for position in all_positions:
+                try:
+                    # 현재가 조회
+                    ticker = self.api.get_ticker(position.symbol)
+                    if ticker.get('status') != '0000':
+                        continue
+
+                    current_price = float(ticker['data'].get('closing_price', 0))
+                    if current_price <= 0:
+                        continue
+
+                    # 포지션 메트릭 업데이트
+                    self.risk_manager.update_position_metrics(position, current_price)
+
+                    # 1분 이상 보유 시 강제 청산
+                    holding_minutes = (datetime.now() - position.opened_at).total_seconds() / 60
+                    if holding_minutes > 1:
+                        print(f"  [강제청산] {position.symbol} 보유시간 {holding_minutes:.1f}분 초과")
+                        self.order_executor.close_position(position, current_price, 'TIMEOUT_1MIN')
+                        continue
+
+                    # 일반 청산 체크
+                    should_close, reason = self.risk_manager.should_close_position(position, current_price)
+                    if should_close:
+                        self.order_executor.close_position(position, current_price, reason)
+
+                except Exception as e:
+                    self._log_error(f"포지션 체크 에러 ({position.symbol}): {str(e)}")
+        except Exception as e:
+            self._log_error(f"전체 포지션 체크 에러: {str(e)}")
 
     def _manage_positions(self, symbol: str, current_price: float) -> bool:
         """포지션 관리, 자동 청산, 물타기"""
