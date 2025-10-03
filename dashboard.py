@@ -19,6 +19,23 @@ def dashboard():
     return render_template('dashboard.html')
 
 
+@app.route('/api/version')
+def get_version():
+    """버전 확인 (배포 확인용)"""
+    import subprocess
+    try:
+        commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).decode('utf-8').strip()
+    except:
+        commit = 'unknown'
+    return jsonify({
+        'version': '2.0-fast',
+        'commit': commit,
+        'interval': 10,
+        'max_positions': 3,
+        'timeout': '1min'
+    })
+
+
 @app.route('/api/status')
 def get_status():
     """시스템 상태"""
