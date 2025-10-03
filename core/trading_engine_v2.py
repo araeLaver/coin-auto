@@ -215,10 +215,10 @@ class TradingEngineV2:
 
         # 캐시에서 데이터 가져오기
         market_data_entry = self.market_data_cache.get(symbol)
-        indicators = self.indicators_cache.get(symbol)
+        indicators = self.indicators_cache.get(symbol, {})  # 없으면 빈 딕셔너리
         orderbook = self.orderbook_cache.get(symbol)
 
-        if not market_data_entry or not indicators:
+        if not market_data_entry:
             return None
 
         # 시장 데이터 준비
