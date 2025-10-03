@@ -151,17 +151,13 @@ class RiskManager:
         # 시간 기반 청산 (초단기 스캘핑 최적화)
         holding_minutes = (datetime.now() - position.opened_at).total_seconds() / 60
 
-        # 30분 이상 보유 시 강제 청산
-        if holding_minutes > 30:
-            return True, 'TIMEOUT_30MIN'
+        # 1분 이상 보유 시 강제 청산 (즉시 회전)
+        if holding_minutes > 1:
+            return True, 'TIMEOUT_1MIN'
 
-        # 15분 이상 손실 포지션 청산
-        if holding_minutes > 15 and pnl_percent < 0:
-            return True, 'TIMEOUT_LOSS'
-
-        # 10분 이상 무수익 포지션 청산
-        if holding_minutes > 10 and abs(pnl_percent) < 0.3:
-            return True, 'TIMEOUT_STAGNANT'
+        # 손실 포지션 즉시 청산
+        if pnl_percent < -0.5:
+            return True, 'QUICK_STOP_LOSS'
 
         return False, ''
 

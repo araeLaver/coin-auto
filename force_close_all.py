@@ -1,7 +1,6 @@
 """
-모든 포지션 강제 청산
+모든 오픈 포지션 강제 청산
 """
-
 from database import SessionLocal, Position
 from core.order_executor import OrderExecutor
 from datetime import datetime
@@ -9,24 +8,34 @@ from datetime import datetime
 db = SessionLocal()
 executor = OrderExecutor()
 
-# 모든 OPEN 포지션 조회
-open_positions = db.query(Position).filter(Position.status == 'OPEN').all()
+try:
+    # 모든 오픈 포지션 조회
+    positions = db.query(Position).filter(Position.status == 'OPEN').all()
 
-print(f"\n총 {len(open_positions)}개 포지션 청산 시작...\n")
+    print(f"총 {len(positions)}개 오픈 포지션 강제 청산 시작...")
 
-for pos in open_positions:
-    try:
-        # OrderExecutor로 청산
-        success = executor.close_position(pos, float(pos.entry_price), '수동청산')
+    for pos in positions:
+        try:
+            # 현재가 조회
+            ticker = executor.api.get_ticker(pos.symbol)
+            if ticker.get('status') == '0000':
+                current_price = float(ticker['data'].get('closing_price', 0))
 
-        if success:
-            print(f"[{pos.symbol}] OK 청산 완료")
-        else:
-            print(f"[{pos.symbol}] ERROR 청산 실패")
+                print(f"\n청산 중: {pos.symbol} @ {current_price:,.0f}원")
 
-    except Exception as e:
-        print(f"[{pos.symbol}] 에러: {str(e)}")
+                # 강제 청산
+                success = executor.close_position(pos, current_price, 'FORCE_CLOSE')
 
-db.close()
+                if success:
+                    print(f"  ✅ 청산 완료")
+                else:
+                    print(f"  ❌ 청산 실패")
+        except Exception as e:
+            print(f"  ❌ 에러: {str(e)}")
 
-print("\n청산 완료!")
+    print(f"\n\n전체 청산 완료!")
+
+except Exception as e:
+    print(f"에러: {str(e)}")
+finally:
+    db.close()
