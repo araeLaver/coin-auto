@@ -15,13 +15,13 @@ class HyperScalpingStrategy(BaseStrategy):
 
     def __init__(self, parameters: Dict = None):
         default_params = {
-            # 수익률 중심 설정 (수수료 0.5% 고려)
-            'instant_profit_target': 0.025,    # 2.5% 익절 (수수료 포함 2% 순익)
-            'quick_profit_target': 0.03,       # 3% 익절 (수수료 포함 2.5% 순익)
-            'ultra_quick_stop': 0.002,         # 0.2% 손절 (빠르게)
-            'price_spike_threshold': 0.005,    # 0.5% 급등 포착
-            'min_volume_ratio': 1.2,           # 거래량 조건
-            'min_confidence': 0.60,            # 신뢰도
+            # 초단기 스캘핑 최적화 (회전율 극대화)
+            'instant_profit_target': 0.012,    # 1.2% 익절 (수수료 0.5% 제외 0.7% 순익)
+            'quick_profit_target': 0.015,      # 1.5% 익절
+            'ultra_quick_stop': 0.015,         # 1.5% 손절 (빠른 손절)
+            'price_spike_threshold': 0.008,    # 0.8% 급등 포착
+            'min_volume_ratio': 1.5,           # 거래량 조건 강화
+            'min_confidence': 0.70,            # 신뢰도 상향
         }
         params = {**default_params, **(parameters or {})}
         super().__init__('Hyper Scalping', 'ultra_fast', params)
