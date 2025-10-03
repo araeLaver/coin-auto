@@ -49,10 +49,10 @@ class HyperScalpingStrategy(BaseStrategy):
         # 실시간 가격 변동률 계산 (이전 체크 대비)
         price_change_1m = (current_price - prev_price) / prev_price if prev_price > 0 else 0
 
-        # 전략 1: 급등 순간 포착 (0.8% 이상)
-        if price_change_1m > self.parameters['price_spike_threshold']:
-            strength = min(price_change_1m * 100, 100)
-            confidence = min(0.60 + (volume_ratio / 10), 0.90)
+        # 전략 1: 급등 순간 포착 (0.1% 이상 - 초민감)
+        if abs(price_change_1m) > 0.001:  # 0.1% 이상 움직임
+            strength = min(abs(price_change_1m) * 100, 100)
+            confidence = min(0.55 + (volume_ratio / 10), 0.85)
 
             return {
                 'signal_type': 'BUY',
@@ -61,34 +61,13 @@ class HyperScalpingStrategy(BaseStrategy):
                 'entry_price': current_price,
                 'stop_loss': current_price * (1 - self.parameters['ultra_quick_stop']),
                 'take_profit': current_price * (1 + self.parameters['instant_profit_target']),
-                'reasoning': f"급등{price_change_1m*100:.2f}% 순간포착",
+                'reasoning': f"가격변동{price_change_1m*100:+.2f}%",
                 'metadata': {
                     'price_change_1m': price_change_1m,
                     'volume_ratio': volume_ratio,
-                    'trigger': 'spike'
+                    'trigger': 'any_movement'
                 }
             }
-
-        # 전략 2: 상승 추세 (0.2% 이상 포착 - 매우 공격적)
-        elif price_change_1m > 0.002:  # 0.2% 이상 상승
-            if volume_ratio > 0.8:  # 거래량 조건 완화
-                strength = 55
-                confidence = 0.55
-
-                return {
-                    'signal_type': 'BUY',
-                    'strength': strength,
-                    'confidence': confidence,
-                    'entry_price': current_price,
-                    'stop_loss': current_price * (1 - self.parameters['ultra_quick_stop']),
-                    'take_profit': current_price * (1 + self.parameters['quick_profit_target']),
-                    'reasoning': f"상승추세{price_change_1m*100:.2f}%",
-                    'metadata': {
-                        'price_change_1m': price_change_1m,
-                        'volume_ratio': volume_ratio,
-                        'trigger': 'trend'
-                    }
-                }
 
         # 전략 3: 순간 반등 (가격 하락 후 반등) - RSI 없이도 작동
         elif -0.005 < price_change_1m < -0.001:  # 약간 하락
