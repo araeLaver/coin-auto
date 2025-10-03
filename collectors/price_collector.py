@@ -89,6 +89,8 @@ class PriceCollector:
 
     def save_ohlcv(self, candle_data: Dict):
         """OHLCV 데이터 저장"""
+        from sqlalchemy.exc import IntegrityError
+
         try:
             # 기존 데이터 확인
             existing = self.db.query(OHLCVData).filter(
@@ -120,6 +122,9 @@ class PriceCollector:
 
             self.db.commit()
 
+        except IntegrityError as e:
+            # UniqueViolation 에러 무시 (동시성 문제)
+            self.db.rollback()
         except Exception as e:
             self.db.rollback()
             self._log_error(f"OHLCV 저장 실패: {str(e)}")
