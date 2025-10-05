@@ -47,7 +47,7 @@ services:
         value: telegram-chat-id
 
       - name: TRADE_MODE
-        value: paper
+        value: live
       - name: INITIAL_CAPITAL
         value: "1000000"
       - name: MAX_POSITION_SIZE
