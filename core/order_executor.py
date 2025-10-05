@@ -41,8 +41,13 @@ class OrderExecutor:
                 return None
 
             # 주문 실행
+            self._log_info(f"거래 모드: {'실전' if self.is_live_mode else '페이퍼'} | {symbol} {signal_type} {position_size_krw:.0f}원")
+
             if self.is_live_mode:
                 order_result = self._execute_live_order(symbol, signal_type, position_size_krw, entry_price)
+                if not order_result:
+                    self._log_error(f"실전 주문 실패: {symbol}")
+                    return None
                 # 실제 체결된 수량 사용
                 actual_quantity = order_result.get('filled_quantity', 0)
             else:
@@ -50,9 +55,6 @@ class OrderExecutor:
                 quantity = position_size_krw / entry_price
                 order_result = self._execute_paper_order(symbol, signal_type, quantity, entry_price)
                 actual_quantity = order_result.get('filled_quantity', quantity)
-
-            if not order_result:
-                return None
 
             # 포지션 생성
             position = Position(
