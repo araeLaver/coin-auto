@@ -330,6 +330,57 @@ def get_summary():
         db.close()
 
 
+@app.route('/api/cleanup_phantom', methods=['POST'])
+def cleanup_phantom_positions():
+    """유령 포지션 강제 정리 (실제 계좌엔 없는데 DB에만 있는 포지션)"""
+    db = SessionLocal()
+    try:
+        # OPEN 상태인 모든 포지션 조회
+        open_positions = db.query(Position).filter(Position.status == 'OPEN').all()
+
+        cleaned = []
+        for pos in open_positions:
+            # Trade로 이동 (0원 손익으로 청산)
+            trade = Trade(
+                position_id=pos.id,
+                symbol=pos.symbol,
+                strategy_id=pos.strategy_id,
+                position_type=pos.position_type,
+                entry_price=pos.entry_price,
+                exit_price=pos.entry_price,
+                quantity=pos.quantity,
+                pnl=Decimal('0'),
+                pnl_percent=Decimal('0'),
+                exit_reason='PHANTOM_CLEANUP',
+                opened_at=pos.opened_at,
+                closed_at=datetime.now()
+            )
+
+            db.add(trade)
+            db.delete(pos)
+            cleaned.append({
+                'id': pos.id,
+                'symbol': pos.symbol,
+                'quantity': float(pos.quantity)
+            })
+
+        db.commit()
+
+        return jsonify({
+            'success': True,
+            'cleaned': len(cleaned),
+            'positions': cleaned
+        })
+    except Exception as e:
+        db.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+    finally:
+        db.close()
+
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 8080))
