@@ -135,19 +135,19 @@ class RiskManager:
                 if current_price <= take_profit:
                     return True, 'TAKE_PROFIT'
 
-        # 트레일링 스톱 (수익 1% 이상부터 조기 시작)
+        # 트레일링 스톱 (수익 3% 이상부터 시작 - 상승 추세 최대 활용)
         pnl_percent = self.calculate_pnl_percent(position, current_price)
 
-        if pnl_percent > 1:  # 1% 이상 수익부터 트레일링 시작
-            # 최고점 대비 하락률 계산을 위한 트레일링 임계값
-            trailing_threshold = 0.985  # 기본 -1.5%
+        if pnl_percent > 3:  # 3% 이상 수익부터 트레일링 시작
+            # 상승비율에 따른 하락 방어폭 설정 (상승할수록 여유 확대)
+            trailing_threshold = 0.97  # 기본 -3% (3-10% 수익 구간)
 
-            if pnl_percent > 3:
-                trailing_threshold = 0.99  # 3% 이상: -1%
-            if pnl_percent > 7:
-                trailing_threshold = 0.995  # 7% 이상: -0.5%
-            if pnl_percent > 15:
-                trailing_threshold = 0.998  # 15% 이상: -0.2%
+            if pnl_percent > 10:
+                trailing_threshold = 0.98  # 10% 이상: -2%
+            if pnl_percent > 20:
+                trailing_threshold = 0.985  # 20% 이상: -1.5%
+            if pnl_percent > 30:
+                trailing_threshold = 0.99  # 30% 이상: -1%
 
             # 현재가 기준 트레일링 스톱 설정
             new_stop_loss = current_price * trailing_threshold

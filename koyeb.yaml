@@ -59,7 +59,7 @@ services:
       - name: MAX_DAILY_LOSS
         value: "0.05"
       - name: MAX_OPEN_POSITIONS
-        value: "15"
+        value: "20"
 
     # 헬스체크
     health_checks:
