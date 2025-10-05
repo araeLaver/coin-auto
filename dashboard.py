@@ -345,7 +345,6 @@ def cleanup_phantom_positions():
                 position_id=pos.id,
                 symbol=pos.symbol,
                 strategy_id=pos.strategy_id,
-                position_type=pos.position_type,
                 entry_price=pos.entry_price,
                 exit_price=pos.entry_price,
                 quantity=pos.quantity,
