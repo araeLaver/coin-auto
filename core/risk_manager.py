@@ -135,17 +135,19 @@ class RiskManager:
                 if current_price <= take_profit:
                     return True, 'TAKE_PROFIT'
 
-        # 트레일링 스톱 (수익 2% 이상부터 시작)
+        # 트레일링 스톱 (수익 1% 이상부터 조기 시작)
         pnl_percent = self.calculate_pnl_percent(position, current_price)
 
-        if pnl_percent > 2:  # 2% 이상 수익부터 트레일링 시작
+        if pnl_percent > 1:  # 1% 이상 수익부터 트레일링 시작
             # 최고점 대비 하락률 계산을 위한 트레일링 임계값
-            trailing_threshold = 0.99  # 기본 -1%
+            trailing_threshold = 0.985  # 기본 -1.5%
 
-            if pnl_percent > 5:
-                trailing_threshold = 0.995  # 5% 이상: -0.5%
-            if pnl_percent > 10:
-                trailing_threshold = 0.998  # 10% 이상: -0.2%
+            if pnl_percent > 3:
+                trailing_threshold = 0.99  # 3% 이상: -1%
+            if pnl_percent > 7:
+                trailing_threshold = 0.995  # 7% 이상: -0.5%
+            if pnl_percent > 15:
+                trailing_threshold = 0.998  # 15% 이상: -0.2%
 
             # 현재가 기준 트레일링 스톱 설정
             new_stop_loss = current_price * trailing_threshold
@@ -156,10 +158,7 @@ class RiskManager:
                     self.db.commit()
                     self._log_info(f"트레일링 스톱 조정: {position.symbol} {new_stop_loss:.2f} (수익률: {pnl_percent:.1f}%)")
 
-        # 손실 -1% 이상 시 조기 청산
-        if pnl_percent < -1:
-            return True, 'QUICK_STOP_LOSS'
-
+        # QUICK_STOP_LOSS 제거 - 정식 손절만 사용
         return False, ''
 
     def calculate_pnl_percent(self, position: Position, current_price: float) -> float:

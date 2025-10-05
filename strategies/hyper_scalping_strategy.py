@@ -18,7 +18,7 @@ class HyperScalpingStrategy(BaseStrategy):
             # 수익 극대화 최적화 (상승 추세 끝까지 추적)
             'instant_profit_target': 0.05,     # 5% 익절 (수수료 0.5% 제외 4.5% 순익)
             'quick_profit_target': 0.08,       # 8% 익절
-            'ultra_quick_stop': 0.02,          # 2% 손절
+            'ultra_quick_stop': 0.03,          # 3% 손절 (변동성 여유 확보)
             'price_spike_threshold': 0.003,    # 0.3% 급등 포착 (매우 공격적)
             'min_volume_ratio': 1.0,           # 거래량 조건 완화
             'min_confidence': 0.50,            # 신뢰도 하향 (더 많은 거래)
