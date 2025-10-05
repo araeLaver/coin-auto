@@ -340,23 +340,10 @@ def cleanup_phantom_positions():
 
         cleaned = []
         for pos in open_positions:
-            # Trade로 이동 (0원 손익으로 청산)
-            trade = Trade(
-                position_id=pos.id,
-                symbol=pos.symbol,
-                strategy_id=pos.strategy_id,
-                entry_price=pos.entry_price,
-                exit_price=pos.entry_price,
-                quantity=pos.quantity,
-                pnl=Decimal('0'),
-                pnl_percent=Decimal('0'),
-                exit_reason='PHANTOM_CLEANUP',
-                opened_at=pos.opened_at,
-                closed_at=datetime.now()
-            )
+            # 포지션을 CLOSED로 변경 (삭제하지 않음 - FK 제약조건 때문)
+            pos.status = 'CLOSED'
+            pos.closed_at = datetime.now()
 
-            db.add(trade)
-            db.delete(pos)
             cleaned.append({
                 'id': pos.id,
                 'symbol': pos.symbol,
