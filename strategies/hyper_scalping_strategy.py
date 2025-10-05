@@ -15,10 +15,10 @@ class HyperScalpingStrategy(BaseStrategy):
 
     def __init__(self, parameters: Dict = None):
         default_params = {
-            # 초단기 스캘핑 최적화 (회전율 극대화)
-            'instant_profit_target': 0.012,    # 1.2% 익절 (수수료 0.5% 제외 0.7% 순익)
-            'quick_profit_target': 0.015,      # 1.5% 익절
-            'ultra_quick_stop': 0.015,         # 1.5% 손절 (빠른 손절)
+            # 수익 극대화 최적화 (상승 추세 끝까지 추적)
+            'instant_profit_target': 0.05,     # 5% 익절 (수수료 0.5% 제외 4.5% 순익)
+            'quick_profit_target': 0.08,       # 8% 익절
+            'ultra_quick_stop': 0.02,          # 2% 손절
             'price_spike_threshold': 0.003,    # 0.3% 급등 포착 (매우 공격적)
             'min_volume_ratio': 1.0,           # 거래량 조건 완화
             'min_confidence': 0.50,            # 신뢰도 하향 (더 많은 거래)

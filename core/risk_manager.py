@@ -135,28 +135,29 @@ class RiskManager:
                 if current_price <= take_profit:
                     return True, 'TAKE_PROFIT'
 
-        # 트레일링 스톱 (수익이 5% 이상이면 손절가 조정)
+        # 트레일링 스톱 (수익 2% 이상부터 시작)
         pnl_percent = self.calculate_pnl_percent(position, current_price)
 
-        if pnl_percent > 5:  # 5% 이상 수익
-            # 손절가를 진입가로 이동 (손실 방지)
-            new_stop_loss = entry_price * 1.01  # 진입가 + 1%
+        if pnl_percent > 2:  # 2% 이상 수익부터 트레일링 시작
+            # 최고점 대비 하락률 계산을 위한 트레일링 임계값
+            trailing_threshold = 0.99  # 기본 -1%
+
+            if pnl_percent > 5:
+                trailing_threshold = 0.995  # 5% 이상: -0.5%
+            if pnl_percent > 10:
+                trailing_threshold = 0.998  # 10% 이상: -0.2%
+
+            # 현재가 기준 트레일링 스톱 설정
+            new_stop_loss = current_price * trailing_threshold
 
             if position.position_type == 'LONG':
-                if stop_loss and new_stop_loss > stop_loss:
+                if not stop_loss or new_stop_loss > stop_loss:
                     position.stop_loss = Decimal(str(new_stop_loss))
                     self.db.commit()
-                    self._log_info(f"트레일링 스톱 조정: {position.symbol} {new_stop_loss:.2f}")
+                    self._log_info(f"트레일링 스톱 조정: {position.symbol} {new_stop_loss:.2f} (수익률: {pnl_percent:.1f}%)")
 
-        # 시간 기반 청산 (초단기 스캘핑 최적화)
-        holding_minutes = (datetime.now() - position.opened_at).total_seconds() / 60
-
-        # 1분 이상 보유 시 강제 청산 (즉시 회전)
-        if holding_minutes > 1:
-            return True, 'TIMEOUT_1MIN'
-
-        # 손실 포지션 즉시 청산
-        if pnl_percent < -0.5:
+        # 손실 -1% 이상 시 조기 청산
+        if pnl_percent < -1:
             return True, 'QUICK_STOP_LOSS'
 
         return False, ''
@@ -226,7 +227,7 @@ class RiskManager:
 
         risk_reward_ratio = profit_distance / loss_distance if loss_distance > 0 else 0
 
-        if risk_reward_ratio < 0.5:  # 최소 1:0.5 (스캘핑 전략용 완화)
+        if risk_reward_ratio < 1.5:  # 최소 1:1.5 (수익 극대화 전략)
             return False, f"리스크/보상 비율 부족: {risk_reward_ratio:.2f}"
 
         # 4. 포지션 크기 체크

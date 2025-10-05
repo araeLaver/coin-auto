@@ -377,14 +377,7 @@ class TradingEngineV2:
                     # 포지션 메트릭 업데이트
                     self.risk_manager.update_position_metrics(position, current_price)
 
-                    # 1분 이상 보유 시 강제 청산
-                    holding_minutes = (datetime.now() - position.opened_at).total_seconds() / 60
-                    if holding_minutes > 1:
-                        print(f"  [강제청산] {position.symbol} 보유시간 {holding_minutes:.1f}분 초과")
-                        self.order_executor.close_position(position, current_price, 'TIMEOUT_1MIN')
-                        continue
-
-                    # 일반 청산 체크
+                    # 청산 체크 (시간 제한 없음, 오직 손절/익절/트레일링으로만)
                     should_close, reason = self.risk_manager.should_close_position(position, current_price)
                     if should_close:
                         self.order_executor.close_position(position, current_price, reason)
