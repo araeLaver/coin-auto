@@ -226,7 +226,7 @@ class RiskManager:
 
         risk_reward_ratio = profit_distance / loss_distance if loss_distance > 0 else 0
 
-        if risk_reward_ratio < 1.2:  # 최소 1:1.2
+        if risk_reward_ratio < 0.5:  # 최소 1:0.5 (스캘핑 전략용 완화)
             return False, f"리스크/보상 비율 부족: {risk_reward_ratio:.2f}"
 
         # 4. 포지션 크기 체크
