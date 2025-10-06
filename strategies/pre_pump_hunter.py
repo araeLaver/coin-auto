@@ -45,17 +45,22 @@ class PrePumpHunter(BaseStrategy):
         if current_price <= 0 or current_price > self.parameters['max_price']:
             return None
 
-        # 1. 24시간 하락 체크 (저점 다지기 구간)
-        # price_change_24h가 없으면 API에서 직접 계산 필요
-        # 일단 indicators에서 가져오기 시도
-        price_change_24h = indicators.get('price_change_24h', 0)
+        # 1. 가격 하락 체크 (저점 다지기 구간)
+        # 5분 데이터로 판단 (15분봉 없어도 작동)
+        price_change_5m = indicators.get('price_change_5m', 0)
 
-        # 하락 구간 필터 (-10% ~ -1%)
-        if not (self.parameters['dip_min'] <= price_change_24h <= self.parameters['dip_max']):
-            # 대안: 15분/5분 하락도 체크
-            price_change_15m = indicators.get('price_change_15m', 0)
-            if not (self.parameters['dip_min'] <= price_change_15m <= self.parameters['dip_max']):
-                return None
+        # 5분 하락 OR 15분 하락 체크
+        price_change_15m = indicators.get('price_change_15m', price_change_5m)
+
+        # 둘 중 하나라도 하락 구간이면 OK
+        is_dipping = (self.parameters['dip_min'] <= price_change_5m <= self.parameters['dip_max']) or \
+                     (self.parameters['dip_min'] <= price_change_15m <= self.parameters['dip_max'])
+
+        if not is_dipping:
+            return None
+
+        # 실제 하락률
+        price_change_24h = max(price_change_5m, price_change_15m, key=abs)
 
         # 2. 거래량 급증 (세력 매집 가능성)
         volume_ratio = indicators.get('volume_ratio', 1.0)
