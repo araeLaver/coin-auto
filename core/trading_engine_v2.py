@@ -52,17 +52,17 @@ class TradingEngineV2:
         self.data_threads = []
 
     def _initialize_strategies(self) -> Dict:
-        """전략 초기화 - 20% 급등 예측 전략"""
+        """전략 초기화 - 급등 전 선제 매수"""
         strategies = {}
 
-        # 20% 이상 급등 코인 조기 포착 전략
-        from strategies.moon_shot_strategy import MoonShotStrategy
-        moon_strategy = MoonShotStrategy()
+        # 급등 전 선제 매수 전략 (저점 다지기 구간 포착)
+        from strategies.pre_pump_hunter import PrePumpHunter
+        pre_pump = PrePumpHunter()
 
         strategies[1] = {
-            'instance': moon_strategy,
-            'name': 'Moon Shot',
-            'type': 'high_gain'
+            'instance': pre_pump,
+            'name': 'Pre-Pump Hunter',
+            'type': 'predictive'
         }
 
         return strategies

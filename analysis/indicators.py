@@ -217,6 +217,7 @@ class IndicatorEngine:
             # 가격 변동률 계산 (급등 감지용)
             price_change_5m = (df.iloc[-1]['close'] - df.iloc[-5]['close']) / df.iloc[-5]['close'] if len(df) >= 5 else 0
             price_change_15m = (df.iloc[-1]['close'] - df.iloc[-15]['close']) / df.iloc[-15]['close'] if len(df) >= 15 else 0
+            price_change_24h = (df.iloc[-1]['close'] - df.iloc[0]['close']) / df.iloc[0]['close'] if len(df) >= 144 else price_change_15m  # 1분봉 기준 24시간
 
             # 볼린저밴드 포지션 (0~1, 0.5=중간)
             current_price = df.iloc[-1]['close']
@@ -246,6 +247,7 @@ class IndicatorEngine:
                 'stoch_d': float(stoch_data['d'].iloc[latest_idx]) if pd.notna(stoch_data['d'].iloc[latest_idx]) else None,
                 'price_change_5m': float(price_change_5m),
                 'price_change_15m': float(price_change_15m),
+                'price_change_24h': float(price_change_24h),
             }
 
             return indicators
