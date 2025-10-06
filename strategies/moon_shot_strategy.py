@@ -14,20 +14,20 @@ class MoonShotStrategy(BaseStrategy):
 
     def __init__(self, parameters: Dict = None):
         default_params = {
-            # 급등 전조 신호 파라미터
-            'min_volume_surge': 2.5,           # 거래량 2.5배 이상
-            'price_momentum_threshold': 0.02,  # 2% 이상 상승 모멘텀
-            'consecutive_green_candles': 3,    # 3개 연속 양봉
-            'volume_price_correlation': 0.7,   # 거래량-가격 상관관계
+            # 급등 전조 신호 파라미터 (현실적으로 완화)
+            'min_volume_surge': 1.2,           # 거래량 1.2배 이상 (20% 증가)
+            'price_momentum_threshold': 0.005, # 0.5% 이상 상승 모멘텀 (조기 포착)
+            'consecutive_green_candles': 2,    # 2개 연속 양봉
+            'volume_price_correlation': 0.5,   # 거래량-가격 상관관계
 
             # 목표 설정
             'target_profit': 0.20,             # 목표 수익 20%
-            'min_profit': 0.15,                # 최소 수익 15%
+            'min_profit': 0.10,                # 최소 수익 10%
             'stop_loss': 0.05,                 # 손절 5%
 
-            # 필터링
-            'min_confidence': 0.70,            # 신뢰도 70% 이상만
-            'max_price_range': 500,            # 최대 500원 이하 (변동성 높은 저가코인)
+            # 필터링 (더 많은 기회 포착)
+            'min_confidence': 0.50,            # 신뢰도 50% 이상
+            'max_price_range': 1000,           # 최대 1000원 이하
         }
         params = {**default_params, **(parameters or {})}
         super().__init__('Moon Shot', 'high_gain', params)
@@ -39,35 +39,36 @@ class MoonShotStrategy(BaseStrategy):
         if current_price <= 0 or current_price > self.parameters['max_price_range']:
             return None
 
-        # 1. 거래량 급증 체크 (가장 중요!)
+        # 1. 거래량 체크 (완화)
         volume_ratio = indicators.get('volume_ratio', 1.0)
         if volume_ratio < self.parameters['min_volume_surge']:
             return None
 
-        # 2. 가격 상승 모멘텀 체크
+        # 2. 가격 상승 모멘텀 체크 (완화)
         price_change_5m = indicators.get('price_change_5m', 0)
         price_change_15m = indicators.get('price_change_15m', 0)
 
-        # 최근 5분, 15분 모두 상승 중
-        if price_change_5m < self.parameters['price_momentum_threshold']:
-            return None
-        if price_change_15m < 0:  # 15분은 최소 0 이상
+        # 최근 5분 상승 OR 15분 상승 (둘 중 하나만 OK)
+        has_momentum = (price_change_5m >= self.parameters['price_momentum_threshold'] or
+                       price_change_15m >= self.parameters['price_momentum_threshold'])
+
+        if not has_momentum:
             return None
 
-        # 3. RSI 체크 (과매수 아니면서 상승 추세)
+        # 3. RSI 체크 (범위 확대)
         rsi = indicators.get('rsi', 50)
-        if rsi < 50 or rsi > 75:  # 50-75 구간 (상승 여력)
+        if rsi < 40 or rsi > 80:  # 40-80 구간 (더 넓게)
             return None
 
-        # 4. MACD 골든크로스
+        # 4. MACD 조건 완화 (음수 아니면 OK)
         macd = indicators.get('macd', 0)
         macd_signal = indicators.get('macd_signal', 0)
-        if macd <= macd_signal:  # MACD > Signal (상승 신호)
+        if macd < -1:  # 강한 하락 추세만 제외
             return None
 
-        # 5. 볼린저 밴드 돌파 체크
+        # 5. 볼린저 밴드 체크 완화
         bb_position = indicators.get('bb_position', 0.5)
-        if bb_position < 0.6:  # 상단 밴드 쪽으로 이동 중
+        if bb_position < 0.4:  # 하단 40% 미만만 제외
             return None
 
         # 6. 호가창 매수 우세 (옵션)
@@ -144,15 +145,11 @@ class MoonShotStrategy(BaseStrategy):
         return sum(scores)
 
     def validate_signal(self, signal: Dict, market_conditions: Dict) -> bool:
-        """신호 유효성 검증"""
+        """신호 유효성 검증 (완화)"""
 
         # 신뢰도 재확인
         if signal.get('confidence', 0) < self.parameters['min_confidence']:
             return False
 
-        # 시장 변동성 체크 (너무 조용하면 제외)
-        volatility = market_conditions.get('volatility', 0)
-        if volatility < 0.02:  # 최소 2% 변동성 필요
-            return False
-
+        # 변동성 체크 제거 (거래 기회 확대)
         return True
