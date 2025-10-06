@@ -214,6 +214,15 @@ class IndicatorEngine:
             # 최신 값 추출
             latest_idx = -1
 
+            # 가격 변동률 계산 (급등 감지용)
+            price_change_5m = (df.iloc[-1]['close'] - df.iloc[-5]['close']) / df.iloc[-5]['close'] if len(df) >= 5 else 0
+            price_change_15m = (df.iloc[-1]['close'] - df.iloc[-15]['close']) / df.iloc[-15]['close'] if len(df) >= 15 else 0
+
+            # 볼린저밴드 포지션 (0~1, 0.5=중간)
+            current_price = df.iloc[-1]['close']
+            bb_range = bb_data['upper'].iloc[-1] - bb_data['lower'].iloc[-1] if pd.notna(bb_data['upper'].iloc[-1]) else 1
+            bb_position = (current_price - bb_data['lower'].iloc[-1]) / bb_range if bb_range > 0 and pd.notna(bb_data['lower'].iloc[-1]) else 0.5
+
             indicators = {
                 'symbol': symbol,
                 'timeframe': timeframe,
@@ -225,6 +234,7 @@ class IndicatorEngine:
                 'bb_upper': float(bb_data['upper'].iloc[latest_idx]) if pd.notna(bb_data['upper'].iloc[latest_idx]) else None,
                 'bb_middle': float(bb_data['middle'].iloc[latest_idx]) if pd.notna(bb_data['middle'].iloc[latest_idx]) else None,
                 'bb_lower': float(bb_data['lower'].iloc[latest_idx]) if pd.notna(bb_data['lower'].iloc[latest_idx]) else None,
+                'bb_position': float(bb_position),
                 'ema_9': float(ema_9.iloc[latest_idx]) if pd.notna(ema_9.iloc[latest_idx]) else None,
                 'ema_21': float(ema_21.iloc[latest_idx]) if pd.notna(ema_21.iloc[latest_idx]) else None,
                 'ema_50': float(ema_50.iloc[latest_idx]) if pd.notna(ema_50.iloc[latest_idx]) else None,
@@ -234,6 +244,8 @@ class IndicatorEngine:
                 'adx_14': float(adx.iloc[latest_idx]) if pd.notna(adx.iloc[latest_idx]) else None,
                 'stoch_k': float(stoch_data['k'].iloc[latest_idx]) if pd.notna(stoch_data['k'].iloc[latest_idx]) else None,
                 'stoch_d': float(stoch_data['d'].iloc[latest_idx]) if pd.notna(stoch_data['d'].iloc[latest_idx]) else None,
+                'price_change_5m': float(price_change_5m),
+                'price_change_15m': float(price_change_15m),
             }
 
             return indicators

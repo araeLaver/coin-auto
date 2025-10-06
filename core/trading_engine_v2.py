@@ -52,17 +52,17 @@ class TradingEngineV2:
         self.data_threads = []
 
     def _initialize_strategies(self) -> Dict:
-        """전략 초기화 - 초고속 실시간 스캘핑"""
+        """전략 초기화 - 20% 급등 예측 전략"""
         strategies = {}
 
-        # 초고속 실시간 수익률 스캘핑 전략
-        from strategies.hyper_scalping_strategy import HyperScalpingStrategy
-        hyper_strategy = HyperScalpingStrategy()
+        # 20% 이상 급등 코인 조기 포착 전략
+        from strategies.moon_shot_strategy import MoonShotStrategy
+        moon_strategy = MoonShotStrategy()
 
         strategies[1] = {
-            'instance': hyper_strategy,
-            'name': 'Hyper Scalping',
-            'type': 'ultra_fast'
+            'instance': moon_strategy,
+            'name': 'Moon Shot',
+            'type': 'high_gain'
         }
 
         return strategies
@@ -221,12 +221,22 @@ class TradingEngineV2:
         if not market_data_entry:
             return None
 
+        # 거래량 비율 계산
+        current_volume = market_data_entry['volume']
+        avg_volume = indicators.get('volume_sma_20', current_volume)
+        volume_ratio = current_volume / avg_volume if avg_volume > 0 else 1.0
+
         # 시장 데이터 준비
         market_data = {
             'current_price': market_data_entry['price'],
-            'current_volume': market_data_entry['volume'],
+            'current_volume': current_volume,
             'orderbook': orderbook
         }
+
+        # indicators에 추가 정보 병합
+        indicators['volume_ratio'] = volume_ratio
+        indicators['rsi'] = indicators.get('rsi_14', 50)
+        indicators['orderbook_imbalance'] = orderbook.get('imbalance_ratio', 1.0) if orderbook else 1.0
 
         try:
             # 전략 실행
