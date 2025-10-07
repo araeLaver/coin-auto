@@ -263,12 +263,12 @@ class TradingEngineV2:
         return None
 
     def execute_trading_cycle(self):
-        """트레이딩 사이클 실행"""
+        """트레이딩 사이클 실행 - 매수만 자동, 매도는 수동"""
 
         print(f"\n대상 코인: {len(self.symbols)}개")
 
-        # 먼저 모든 오픈 포지션 체크 및 청산
-        self._check_all_positions()
+        # 포지션 체크만 (청산 비활성화)
+        # self._check_all_positions()  # 자동 매도 비활성화
 
         for symbol in self.symbols:
             try:
@@ -283,8 +283,8 @@ class TradingEngineV2:
 
                 print(f"\n[{symbol}] 현재가: {current_price:,.0f}원")
 
-                # 2. 기존 포지션 관리 및 물타기 체크
-                averaging_down_executed = self._manage_positions(symbol, current_price)
+                # 2. 기존 포지션 관리 및 물타기 체크 (비활성화)
+                # averaging_down_executed = self._manage_positions(symbol, current_price)  # 자동 매도 비활성화
 
                 # 3. 리스크 체크
                 if not self.risk_manager.check_daily_loss_limit():
