@@ -52,17 +52,17 @@ class TradingEngineV2:
         self.data_threads = []
 
     def _initialize_strategies(self) -> Dict:
-        """전략 초기화 - 급등 전 선제 매수"""
+        """전략 초기화 - 초공격적 스캘핑"""
         strategies = {}
 
-        # 급등 전 선제 매수 전략 (저점 다지기 구간 포착)
-        from strategies.pre_pump_hunter import PrePumpHunter
-        pre_pump = PrePumpHunter()
+        # 초공격적 스캘핑 전략 (0.1% 움직임만 있어도 진입)
+        from strategies.hyper_scalping_strategy import HyperScalpingStrategy
+        hyper_scalp = HyperScalpingStrategy()
 
         strategies[1] = {
-            'instance': pre_pump,
-            'name': 'Pre-Pump Hunter',
-            'type': 'predictive'
+            'instance': hyper_scalp,
+            'name': 'Hyper Scalping',
+            'type': 'ultra_fast'
         }
 
         return strategies
