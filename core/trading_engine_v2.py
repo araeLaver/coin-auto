@@ -559,7 +559,7 @@ class TradingEngineV2:
 
         return signal_record
 
-    def run(self, interval: int = 60):
+    def run(self, interval: int = 180):
         """트레이딩 봇 실행"""
 
         self.is_running = True

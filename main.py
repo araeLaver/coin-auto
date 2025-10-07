@@ -14,8 +14,8 @@ def main():
     parser = argparse.ArgumentParser(description='Auto Coin Trading System V2')
     parser.add_argument('--mode', choices=['init', 'run', 'collect'], default='run',
                        help='실행 모드 (init: DB 초기화, run: 트레이딩 실행, collect: 데이터 수집)')
-    parser.add_argument('--interval', type=int, default=60,
-                       help='트레이딩 주기 (초, 기본값: 60)')
+    parser.add_argument('--interval', type=int, default=180,
+                       help='트레이딩 주기 (초, 기본값: 180)')
 
     args = parser.parse_args()
 

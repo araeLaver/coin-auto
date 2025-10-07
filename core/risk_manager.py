@@ -81,8 +81,8 @@ class RiskManager:
         risk_adjusted = adjusted_position * (1 / (1 + loss_distance * 10))
 
         # 최대/최소 제한
-        max_position = account_balance * 0.3  # 최대 30%
-        min_position = account_balance * 0.01  # 최소 1%
+        max_position = account_balance * 0.5  # 최대 50% (공격적)
+        min_position = max(account_balance * 0.05, 5000)  # 최소 5% or 5,000원 (빗썸 최소 주문금액)
 
         final_position = max(min(risk_adjusted, max_position), min_position)
 
