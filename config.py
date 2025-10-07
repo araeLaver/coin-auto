@@ -34,11 +34,14 @@ TAKE_PROFIT_PERCENT = float(os.getenv('TAKE_PROFIT_PERCENT', 0.05))
 MAX_DAILY_LOSS = float(os.getenv('MAX_DAILY_LOSS', 0.05))
 MAX_OPEN_POSITIONS = int(os.getenv('MAX_OPEN_POSITIONS', 3))
 
-# Target Trading Pairs - 초고변동성 잡코인 집중 (20개)
+# Target Trading Pairs - 초고변동성 잡코인 집중 (40개)
 TARGET_PAIRS = [
     # 초저가 고변동성 (10-100원대) - 급등 가능성
     'SOPH', 'F', 'H', 'STAT', 'BABY', 'TOSHI', 'TAVA', 'AL', 'ATH', 'CHZ',
     'AMO', 'RSR', 'PEAQ', 'W', 'CUDIS', 'SPK', 'ELX', 'XCN', 'BLUE', 'BRETT',
+    # 추가 고변동성 코인 (불장 대응)
+    'ZIL', 'WAXP', 'SNT', 'GLM', 'CVC', 'ANKR', 'MBL', 'EGG', 'ARPA', 'OBSR',
+    'POLA', 'ADP', 'BLY', 'BIOT', 'GRT', 'IOST', 'COS', 'XPR', 'SOFI', 'WIKEN',
 ]
 
 # Data Collection Intervals (seconds)
