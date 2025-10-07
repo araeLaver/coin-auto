@@ -32,7 +32,7 @@ TAKE_PROFIT_PERCENT = float(os.getenv('TAKE_PROFIT_PERCENT', 0.05))
 
 # Risk Management
 MAX_DAILY_LOSS = float(os.getenv('MAX_DAILY_LOSS', 0.05))
-MAX_OPEN_POSITIONS = int(os.getenv('MAX_OPEN_POSITIONS', 3))
+MAX_OPEN_POSITIONS = int(os.getenv('MAX_OPEN_POSITIONS', 30))
 
 # Target Trading Pairs - 초고변동성 잡코인 집중 (40개)
 TARGET_PAIRS = [

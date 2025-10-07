@@ -70,21 +70,25 @@ class RiskManager:
         if loss_distance <= 0:
             return 0
 
-        # 기본 포지션 사이즈
-        base_position = account_balance * risk_per_trade
+        # 빗썸 최소 주문금액
+        MIN_ORDER_AMOUNT = 5000
 
-        # 신뢰도 기반 조정
+        # 잔고 부족 체크
+        if account_balance < MIN_ORDER_AMOUNT:
+            return 0
+
+        # 기본 포지션 사이즈 (공격적으로 큰 비율)
+        base_position = account_balance * 0.12  # 12% 고정
+
+        # 신뢰도 기반 조정 (완화)
         confidence = signal.get('confidence', 0.5)
-        adjusted_position = base_position * confidence
-
-        # 손실 거리 기반 조정 (리스크가 크면 포지션 축소)
-        risk_adjusted = adjusted_position * (1 / (1 + loss_distance * 10))
+        adjusted_position = base_position * (0.8 + confidence * 0.4)  # 80-120% 범위
 
         # 최대/최소 제한
-        max_position = account_balance * 0.5  # 최대 50% (공격적)
-        min_position = max(account_balance * 0.05, 5000)  # 최소 5% or 5,000원 (빗썸 최소 주문금액)
+        max_position = account_balance * 0.8  # 최대 80% (매우 공격적)
+        min_position = MIN_ORDER_AMOUNT  # 고정 5,000원
 
-        final_position = max(min(risk_adjusted, max_position), min_position)
+        final_position = max(min(adjusted_position, max_position), min_position)
 
         return final_position
 
