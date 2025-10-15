@@ -267,8 +267,8 @@ class TradingEngineV2:
 
         print(f"\n대상 코인: {len(self.symbols)}개")
 
-        # 포지션 체크만 (청산 비활성화)
-        # self._check_all_positions()  # 자동 매도 비활성화
+        # 모든 포지션 체크 및 자동 청산 (활성화)
+        self._check_all_positions()
 
         for symbol in self.symbols:
             try:
@@ -283,10 +283,7 @@ class TradingEngineV2:
 
                 print(f"\n[{symbol}] 현재가: {current_price:,.0f}원")
 
-                # 2. 기존 포지션 관리 및 물타기 체크 (비활성화)
-                # averaging_down_executed = self._manage_positions(symbol, current_price)  # 자동 매도 비활성화
-
-                # 3. 리스크 체크
+                # 2. 리스크 체크
                 if not self.risk_manager.check_daily_loss_limit():
                     print("  일일 손실 한도 초과 - 거래 중단")
                     continue
@@ -295,7 +292,7 @@ class TradingEngineV2:
                     print("  최대 포지션 수 도달")
                     continue
 
-                # 4. 모든 전략에서 시그널 생성
+                # 3. 모든 전략에서 시그널 생성
                 signals = []
                 for strategy_id in self.strategies.keys():
                     signal = self.generate_signal(symbol, strategy_id)
@@ -307,7 +304,7 @@ class TradingEngineV2:
 
                 print(f"  시그널 {len(signals)}개 생성")
 
-                # 5. 최적 시그널 선택
+                # 4. 최적 시그널 선택
                 best_signal = self._select_best_signal(signals)
 
                 if not best_signal:
@@ -317,34 +314,34 @@ class TradingEngineV2:
                       f"(전략: {best_signal['strategy_name']}, "
                       f"신뢰도: {best_signal['confidence']:.1%})")
 
-                # 6. BUY 시그널만 처리 (SELL은 포지션 관리에서 처리)
+                # 5. BUY 시그널만 처리 (SELL은 자동 청산에서 처리)
                 if best_signal['signal_type'] != 'BUY':
                     continue
 
-                # 7. 계좌 잔고 확인
+                # 6. 계좌 잔고 확인
                 balance = self.order_executor.get_account_balance()
                 available_krw = balance.get('available_krw', 0)
 
-                if available_krw < 10000:  # 최소 1만원
+                if available_krw < 5000:  # 최소 5천원
                     print(f"  잔고 부족: {available_krw:,.0f}원")
                     continue
 
-                # 8. 리스크 검증
+                # 7. 리스크 검증
                 is_valid, reason = self.risk_manager.validate_signal_risk(best_signal, available_krw)
 
                 if not is_valid:
                     print(f"  리스크 검증 실패: {reason}")
                     continue
 
-                # 9. 포지션 크기 계산
+                # 8. 포지션 크기 계산
                 position_size = self.risk_manager.calculate_position_size(best_signal, available_krw)
 
                 print(f"  포지션 크기: {position_size:,.0f}원")
 
-                # 10. 시그널 DB 저장
+                # 9. 시그널 DB 저장
                 signal_record = self._save_signal(best_signal, symbol)
 
-                # 11. 주문 실행
+                # 10. 주문 실행
                 position = self.order_executor.execute_signal(signal_record, position_size)
 
                 if position:

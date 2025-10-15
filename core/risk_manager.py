@@ -77,15 +77,15 @@ class RiskManager:
         if account_balance < MIN_ORDER_AMOUNT:
             return 0
 
-        # 기본 포지션 사이즈 (공격적으로 큰 비율)
-        base_position = account_balance * 0.12  # 12% 고정
+        # 기본 포지션 사이즈 (보수적)
+        base_position = account_balance * 0.20  # 20% (5개 포지션 분산)
 
-        # 신뢰도 기반 조정 (완화)
+        # 신뢰도 기반 조정
         confidence = signal.get('confidence', 0.5)
-        adjusted_position = base_position * (0.8 + confidence * 0.4)  # 80-120% 범위
+        adjusted_position = base_position * (0.7 + confidence * 0.6)  # 70-130% 범위
 
         # 최대/최소 제한
-        max_position = account_balance * 0.8  # 최대 80% (매우 공격적)
+        max_position = account_balance * 0.30  # 최대 30% (보수적)
         min_position = MIN_ORDER_AMOUNT  # 고정 5,000원
 
         final_position = max(min(adjusted_position, max_position), min_position)
@@ -130,28 +130,22 @@ class RiskManager:
                 if current_price >= stop_loss:
                     return True, 'STOP_LOSS'
 
-        # 익절가 체크
-        if take_profit:
-            if position.position_type == 'LONG':
-                if current_price >= take_profit:
-                    return True, 'TAKE_PROFIT'
-            else:  # SHORT
-                if current_price <= take_profit:
-                    return True, 'TAKE_PROFIT'
-
-        # 트레일링 스톱 (수익 3% 이상부터 시작 - 상승 추세 최대 활용)
+        # 익절 제거 - 상승은 무제한 추종
+        # 트레일링 스톱만 사용 (수익 2% 이상부터 시작, 여유있게)
         pnl_percent = self.calculate_pnl_percent(position, current_price)
 
-        if pnl_percent > 3:  # 3% 이상 수익부터 트레일링 시작
-            # 상승비율에 따른 하락 방어폭 설정 (상승할수록 여유 확대)
-            trailing_threshold = 0.97  # 기본 -3% (3-10% 수익 구간)
+        if pnl_percent > 2:  # 2% 이상 수익부터 트레일링 시작 (좀 더 여유)
+            # 수익률에 따른 트레일링 설정 (하락 방어폭 확대)
+            trailing_threshold = 0.97  # 기본 -3% (2-5% 수익 구간)
 
+            if pnl_percent > 5:
+                trailing_threshold = 0.965  # 5% 이상: -3.5%
             if pnl_percent > 10:
-                trailing_threshold = 0.98  # 10% 이상: -2%
+                trailing_threshold = 0.96  # 10% 이상: -4%
             if pnl_percent > 20:
-                trailing_threshold = 0.985  # 20% 이상: -1.5%
-            if pnl_percent > 30:
-                trailing_threshold = 0.99  # 30% 이상: -1%
+                trailing_threshold = 0.955  # 20% 이상: -4.5%
+            if pnl_percent > 50:
+                trailing_threshold = 0.95  # 50% 이상: -5%
 
             # 현재가 기준 트레일링 스톱 설정
             new_stop_loss = current_price * trailing_threshold
@@ -162,7 +156,6 @@ class RiskManager:
                     self.db.commit()
                     self._log_info(f"트레일링 스톱 조정: {position.symbol} {new_stop_loss:.2f} (수익률: {pnl_percent:.1f}%)")
 
-        # QUICK_STOP_LOSS 제거 - 정식 손절만 사용
         return False, ''
 
     def calculate_pnl_percent(self, position: Position, current_price: float) -> float:
@@ -213,30 +206,26 @@ class RiskManager:
         if not self.check_max_open_positions():
             return False, "최대 포지션 수 도달"
 
-        # 3. 손절/익절 비율 체크 (최소 1:1.5 권장)
+        # 3. 손절 가격 체크만 (익절 제거)
         entry_price = signal.get('entry_price', 0)
         stop_loss = signal.get('stop_loss', 0)
-        take_profit = signal.get('take_profit', 0)
 
-        if entry_price <= 0 or stop_loss <= 0 or take_profit <= 0:
-            return False, "손절/익절 가격 오류"
+        if entry_price <= 0 or stop_loss <= 0:
+            return False, "손절 가격 오류"
 
+        # 손절 거리 확인 (너무 가까우면 안됨)
         if signal['signal_type'] == 'BUY':
-            loss_distance = abs(entry_price - stop_loss)
-            profit_distance = abs(take_profit - entry_price)
+            loss_distance_percent = abs(entry_price - stop_loss) / entry_price
         else:
-            loss_distance = abs(stop_loss - entry_price)
-            profit_distance = abs(entry_price - take_profit)
+            loss_distance_percent = abs(stop_loss - entry_price) / entry_price
 
-        risk_reward_ratio = profit_distance / loss_distance if loss_distance > 0 else 0
-
-        if risk_reward_ratio < 1.5:  # 최소 1:1.5 (수익 극대화 전략)
-            return False, f"리스크/보상 비율 부족: {risk_reward_ratio:.2f}"
+        if loss_distance_percent < 0.01:  # 최소 1% 이상
+            return False, f"손절 거리 너무 가까움: {loss_distance_percent*100:.1f}%"
 
         # 4. 포지션 크기 체크
         position_size = self.calculate_position_size(signal, account_balance)
 
-        if position_size < account_balance * 0.01:
+        if position_size < 5000:  # 최소 5,000원
             return False, "포지션 크기 너무 작음"
 
         if position_size > account_balance * 0.3:
@@ -244,7 +233,7 @@ class RiskManager:
 
         # 5. 신뢰도 체크
         confidence = signal.get('confidence', 0)
-        if confidence < 0.6:
+        if confidence < 0.70:  # 70% 이상
             return False, f"신뢰도 부족: {confidence:.2f}"
 
         return True, ""

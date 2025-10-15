@@ -15,16 +15,16 @@ class HyperScalpingStrategy(BaseStrategy):
 
     def __init__(self, parameters: Dict = None):
         default_params = {
-            # 수익 극대화 최적화 (상승 추세 끝까지 추적)
-            'instant_profit_target': 0.05,     # 5% 익절 (수수료 0.5% 제외 4.5% 순익)
-            'quick_profit_target': 0.08,       # 8% 익절
-            'ultra_quick_stop': 0.03,          # 3% 손절 (변동성 여유 확보)
-            'price_spike_threshold': 0.003,    # 0.3% 급등 포착 (매우 공격적)
-            'min_volume_ratio': 1.0,           # 거래량 조건 완화
-            'min_confidence': 0.50,            # 신뢰도 하향 (더 많은 거래)
+            # 손절만 엄격, 익절은 무제한 (트레일링 스톱으로 추종)
+            'instant_profit_target': 10.0,     # 1000% (사실상 무제한)
+            'quick_profit_target': 10.0,       # 1000% (사실상 무제한)
+            'ultra_quick_stop': 0.015,         # 1.5% 손절 (엄격)
+            'price_spike_threshold': 0.008,    # 0.8% 급등 포착 (신중)
+            'min_volume_ratio': 1.5,           # 거래량 1.5배 이상
+            'min_confidence': 0.70,            # 신뢰도 70% 이상
         }
         params = {**default_params, **(parameters or {})}
-        super().__init__('Hyper Scalping', 'ultra_fast', params)
+        super().__init__('Trailing Only', 'trailing_only', params)
         self.last_check_time = {}
         self.last_prices = {}  # 이전 가격 캐시
 
@@ -49,10 +49,19 @@ class HyperScalpingStrategy(BaseStrategy):
         # 실시간 가격 변동률 계산 (이전 체크 대비)
         price_change_1m = (current_price - prev_price) / prev_price if prev_price > 0 else 0
 
-        # 전략 1: 급등 순간 포착 (0.1% 이상 - 초민감)
-        if abs(price_change_1m) > 0.001:  # 0.1% 이상 움직임
-            strength = min(abs(price_change_1m) * 100, 100)
-            confidence = min(0.55 + (volume_ratio / 10), 0.85)
+        # 전략 1: 강한 급등 포착 (0.8% 이상 + 거래량 확인)
+        if price_change_1m >= self.parameters['price_spike_threshold']:
+            # 거래량 조건 체크
+            if volume_ratio < self.parameters['min_volume_ratio']:
+                return None
+
+            # RSI 체크 (과매수 구간 제외)
+            rsi = indicators.get('rsi', 50)
+            if rsi > 70:  # 과매수 구간
+                return None
+
+            strength = min(price_change_1m * 100, 100)
+            confidence = min(0.70 + (volume_ratio / 20), 0.90)
 
             return {
                 'signal_type': 'BUY',
@@ -61,29 +70,32 @@ class HyperScalpingStrategy(BaseStrategy):
                 'entry_price': current_price,
                 'stop_loss': current_price * (1 - self.parameters['ultra_quick_stop']),
                 'take_profit': current_price * (1 + self.parameters['instant_profit_target']),
-                'reasoning': f"가격변동{price_change_1m*100:+.2f}%",
+                'reasoning': f"급등{price_change_1m*100:+.2f}% 거래량{volume_ratio:.1f}배",
                 'metadata': {
                     'price_change_1m': price_change_1m,
                     'volume_ratio': volume_ratio,
-                    'trigger': 'any_movement'
+                    'rsi': rsi,
+                    'trigger': 'strong_spike'
                 }
             }
 
-        # 전략 3: 순간 반등 (가격 하락 후 반등) - RSI 없이도 작동
-        elif -0.005 < price_change_1m < -0.001:  # 약간 하락
-            if volume_ratio > 1.3:
+        # 전략 2: RSI 과매도 반등 (더 신중)
+        rsi = indicators.get('rsi', 50)
+        if 30 < rsi < 40 and volume_ratio > 1.8:  # RSI 과매도 구간 + 강한 거래량
+            if price_change_1m > 0.003:  # 0.3% 이상 상승 중
                 return {
                     'signal_type': 'BUY',
-                    'strength': 55,
-                    'confidence': 0.65,
+                    'strength': 65,
+                    'confidence': 0.75,
                     'entry_price': current_price,
                     'stop_loss': current_price * (1 - self.parameters['ultra_quick_stop']),
                     'take_profit': current_price * (1 + self.parameters['instant_profit_target']),
-                    'reasoning': f"반등기회 {price_change_1m*100:.2f}%",
+                    'reasoning': f"RSI반등 {rsi:.0f} 거래량{volume_ratio:.1f}배",
                     'metadata': {
                         'price_change_1m': price_change_1m,
                         'volume_ratio': volume_ratio,
-                        'trigger': 'bounce'
+                        'rsi': rsi,
+                        'trigger': 'rsi_bounce'
                     }
                 }
 
