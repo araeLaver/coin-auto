@@ -73,7 +73,7 @@ services:
     regions:
       - sin
 
-    # 자동 스케일링 비활성화 (서비스 중지 상태)
+    # 자동 스케일링 비활성화 (Worker는 항상 1개만)
     scaling:
-      min: 0
-      max: 0
+      min: 1
+      max: 1
